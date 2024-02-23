@@ -1,5 +1,11 @@
 # @b-jones-rfd/qualtrics-api-tasks
 
+## 0.0.4
+
+### Patch Changes
+
+- cbceca7: Update changeset config
+
 ## 0.0.3
 
 ### Patch Changes
