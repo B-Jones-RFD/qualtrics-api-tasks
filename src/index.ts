@@ -1,4 +1,3 @@
-export const hello = () => {
-  console.log('Nothing to see here!')
-}
-
+export * from './createConnection'
+export * from './types'
+export * from './methods'
