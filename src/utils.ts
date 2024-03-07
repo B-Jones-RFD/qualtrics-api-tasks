@@ -46,7 +46,7 @@ export function getAuthHeaders(
     })
   if (bearerToken) {
     return new Headers({
-      Authorization: bearerToken,
+      Authorization: `Bearer ${bearerToken}`,
     })
   }
   throw new Error(

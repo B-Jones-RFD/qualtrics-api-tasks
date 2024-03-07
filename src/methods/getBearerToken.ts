@@ -3,11 +3,11 @@ import { failure, safeParseBearerToken, getErrorMessage } from '../utils'
 import { execute } from '../qualtrics'
 
 export const getBearerToken: ActionFactory<
-  { clientId: string; clientSecret: string },
+  { clientId: string; clientSecret: string; scope: string },
   string
 > =
   (connectionOptions) =>
-  async ({ clientId, clientSecret }) => {
+  async ({ clientId, clientSecret, scope }) => {
     const route = `/oauth2/token`
     try {
       const { datacenterId, timeout } = connectionOptions
@@ -18,7 +18,7 @@ export const getBearerToken: ActionFactory<
       })
       const body = new FormData()
       body.append('grant_type', 'client_credentials')
-      body.append('scope', 'manage:all')
+      body.append('scope', scope)
 
       const response = await execute({
         datacenterId,

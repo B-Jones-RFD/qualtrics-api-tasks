@@ -145,16 +145,15 @@ Implements [OAuth Authentication (Client Credentials)](https://api.qualtrics.com
 
 `options`
 
-| Property     | Type   | Description               | Required |
-| ------------ | ------ | ------------------------- | -------- |
-| clientId     | string | Quatrics Client ID        | Y        |
-| clientSecret | string | Qualtrics Client Password | Y        |
+| Property     | Type   | Description                       | Required |
+| ------------ | ------ | --------------------------------- | -------- |
+| clientId     | string | Quatrics Client ID                | Y        |
+| clientSecret | string | Qualtrics Client Password         | Y        |
+| scope        | string | Qualtrics Client requested scopes | Y        |
 
-#### testConnection(options)
+#### testConnection(bearerToken)
 
-`options`
-
-| Property    | Type   | Description        | Required |
+| Parameter   | Type   | Description        | Required |
 | ----------- | ------ | ------------------ | -------- |
 | bearerToken | string | Valid Bearer Token | N        |
 
