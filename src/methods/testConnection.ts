@@ -1,4 +1,4 @@
-import type { ActionFactory } from '../types'
+import type { ActionFactory, ConnectionOptions } from '../types'
 import {
   failure,
   getAuthHeaders,
@@ -8,9 +8,8 @@ import {
 
 import { execute } from '../qualtrics'
 
-export const testConnection: ActionFactory<{ bearerToken?: string }, void> =
-  (connectionOptions) =>
-  async ({ bearerToken }) => {
+export const testConnection: ActionFactory<string | undefined, void> =
+  (connectionOptions: ConnectionOptions) => async (bearerToken?: string) => {
     const route = '/API/v3/whoami'
     try {
       const headers = getAuthHeaders(connectionOptions.apiToken, bearerToken)

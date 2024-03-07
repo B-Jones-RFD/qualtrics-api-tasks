@@ -19,7 +19,7 @@ export type ActionFactory<TParams, TResponse> = (
 ) => Action<TParams, TResponse>
 
 export type Connection = {
-  testConnection: Action<{ bearerToken?: string }, void>
+  testConnection: Action<string | undefined, void>
   getBearerToken: Action<{ clientId: string; clientSecret: string }, string>
 }
 

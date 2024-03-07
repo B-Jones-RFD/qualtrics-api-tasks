@@ -6,7 +6,7 @@ export async function execute(config: {
   body?: string | FormData
 }) {
   const { datacenterId, route, headers, timeout, body } = config
-  const host = `https://${datacenterId}/qualtrics.com`
+  const host = `https://${datacenterId}.qualtrics.com`
   const resource = new URL(route, host)
   const controller = new AbortController()
   const options: RequestInit = {
