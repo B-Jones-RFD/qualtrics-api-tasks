@@ -1,5 +1,11 @@
 # @b-jones-rfd/qualtrics-api-tasks
 
+## 0.0.5
+
+### Patch Changes
+
+- df0e350: Implemented testConnection and getBearerToken methods
+
 ## 0.0.4
 
 ### Patch Changes
