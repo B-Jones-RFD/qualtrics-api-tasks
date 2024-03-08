@@ -1,5 +1,11 @@
 # @b-jones-rfd/qualtrics-api-tasks
 
+## 0.1.0
+
+### Minor Changes
+
+- efa27c7: Implemented survey file response methods
+
 ## 0.0.5
 
 ### Patch Changes
