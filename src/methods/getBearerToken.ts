@@ -1,5 +1,6 @@
 import type { ActionFactory } from '../types'
-import { failure, safeParseBearerToken, getErrorMessage } from '../utils'
+import { failure, getErrorMessage } from '../utils'
+import { safeParseBearerToken } from '../utils/parsers'
 import { execute } from '../qualtrics'
 
 export const getBearerToken: ActionFactory<

@@ -139,7 +139,40 @@ export type Action<TConfig, TResponse> = (
 
 If using the actions directly call the factory method with a ConnectionOptions object to return an action that can be used to execute a Qualtrics action.
 
-#### getBearerToken()
+#### exportResponses(options)
+
+Implements [Survey Response File Export](https://api.qualtrics.com/u9e5lh4172v0v-survey-response-export-guide) multistep process.
+
+`options`
+
+| Property                        | Type     | Description                                 | Required | Default |
+| ------------------------------- | -------- | ------------------------------------------- | -------- | ------- |
+| surveyId                        | string   | Quatrics Survey ID                          | Y        |         |
+| startDate                       | Date     | Export start date and time                  | Y        |         |
+| endDate                         | Date     | Export end date and time                    | Y        |         |
+| format                          | Enum     | File format                                 | N        | 'csv'   |
+| breakoutSets                    | boolean  | Split multi-value fields into columns       | N        | true    |
+| compress                        | boolean  | Compress final export                       | N        | true    |
+| exportResponsesInProgress       | boolean  | Only export not complete                    | N        | false   |
+| filterId                        | string   | Return responses matching id                | N        |         |
+| formatDecimalAsComma            | boolean  | Use comma as decimal separator              | N        | false   |
+| includeDisplayOrder             | boolean  | Include display order in export             | N        | false   |
+| limit                           | number   | Max responses to export                     | N        |         |
+| multiselectSeenUnansweredRecode | number   | Recode seen, but unanswered for multiselect | N        |         |
+| newlineReplacement              | string   | Replace newline character with this         | N        |         |
+| seenUnansweredRecode            | number   | Recode seen, but unanswered with this       | N        |         |
+| timeZone                        | string   | Timezone used to determine response date    | N        | 'UTC"   |
+| useLabels                       | boolean  | Export text of answer choice                | N        | false   |
+| embeddedDataIds                 | string[] | Only export these embedded data fields      | N        |         |
+| questionIds                     | string[] | Only export these question IDs              | N        |         |
+| surveyMetadataIds               | string[] | Only export these metadata fields           | N        |         |
+| continuationToken               | string   | Previous export continuation token          | N        |         |
+| allowContinuation               | boolean  | Request continuation token                  | N        | false   |
+| includeLabelColumns             | boolean  | Export two columns, recode and labels       | N        | false   |
+| sortByLastModifiedDate          | boolean  | Sort responses by modified date             | N        | false   |
+| bearerToken                     | string   | Valid Bearer Token                          | N        |         |
+
+#### getBearerToken(options)
 
 Implements [OAuth Authentication (Client Credentials)](https://api.qualtrics.com/9398592961ced-o-auth-authentication-client-credentials)
 
@@ -150,6 +183,63 @@ Implements [OAuth Authentication (Client Credentials)](https://api.qualtrics.com
 | clientId     | string | Quatrics Client ID                | Y        |
 | clientSecret | string | Qualtrics Client Password         | Y        |
 | scope        | string | Qualtrics Client requested scopes | Y        |
+
+#### getResponseExportFile(options)
+
+Implements [Get Response Export File](https://api.qualtrics.com/41296b6f2e828-get-response-export-file)
+
+`options`
+
+| Property    | Type   | Description        | Required |
+| ----------- | ------ | ------------------ | -------- |
+| surveyId    | string | Quatrics Survey ID | Y        |
+| fileId      | string | File ID            | Y        |
+| bearerToken | string | Valid Bearer Token | N        |
+
+#### getResponseExportProgress(options)
+
+Implements [Get Response Export Progress](https://api.qualtrics.com/37e6a66f74ab4-get-response-export-progress)
+
+`options`
+
+| Property         | Type   | Description        | Required |
+| ---------------- | ------ | ------------------ | -------- |
+| surveyId         | string | Quatrics Survey ID | Y        |
+| exportProgressId | string | Progress ID        | Y        |
+| bearerToken      | string | Valid Bearer Token | N        |
+
+#### startResponseExports(options)
+
+Implements [Start Response Exports](https://api.qualtrics.com/6b00592b9c013-start-response-export)
+
+`options`
+
+| Property                        | Type     | Description                                 | Required | Default |
+| ------------------------------- | -------- | ------------------------------------------- | -------- | ------- |
+| surveyId                        | string   | Quatrics Survey ID                          | Y        |         |
+| startDate                       | Date     | Export start date and time                  | Y        |         |
+| endDate                         | Date     | Export end date and time                    | Y        |         |
+| format                          | Enum     | File format                                 | N        | 'csv'   |
+| breakoutSets                    | boolean  | Split multi-value fields into columns       | N        | true    |
+| compress                        | boolean  | Compress final export                       | N        | true    |
+| exportResponsesInProgress       | boolean  | Only export not complete                    | N        | false   |
+| filterId                        | string   | Return responses matching id                | N        |         |
+| formatDecimalAsComma            | boolean  | Use comma as decimal separator              | N        | false   |
+| includeDisplayOrder             | boolean  | Include display order in export             | N        | false   |
+| limit                           | number   | Max responses to export                     | N        |         |
+| multiselectSeenUnansweredRecode | number   | Recode seen, but unanswered for multiselect | N        |         |
+| newlineReplacement              | string   | Replace newline character with this         | N        |         |
+| seenUnansweredRecode            | number   | Recode seen, but unanswered with this       | N        |         |
+| timeZone                        | string   | Timezone used to determine response date    | N        | 'UTC"   |
+| useLabels                       | boolean  | Export text of answer choice                | N        | false   |
+| embeddedDataIds                 | string[] | Only export these embedded data fields      | N        |         |
+| questionIds                     | string[] | Only export these question IDs              | N        |         |
+| surveyMetadataIds               | string[] | Only export these metadata fields           | N        |         |
+| continuationToken               | string   | Previous export continuation token          | N        |         |
+| allowContinuation               | boolean  | Request continuation token                  | N        | false   |
+| includeLabelColumns             | boolean  | Export two columns, recode and labels       | N        | false   |
+| sortByLastModifiedDate          | boolean  | Sort responses by modified date             | N        | false   |
+| bearerToken                     | string   | Valid Bearer Token                          | N        |         |
 
 #### testConnection(bearerToken)
 
@@ -195,4 +285,4 @@ We use [SemVer](http://semver.org/) for versioning. For the versions available, 
 
 ## License
 
-[MIT License](https://github.com/B-Jones-RFD/sp-rest-connect/blob/main/LICENSE)
+[MIT License](https://github.com/B-Jones-RFD/qualtrics-api-tasks/blob/main/LICENSE)

@@ -1,14 +1,10 @@
-import type { ActionFactory, ConnectionOptions } from '../types'
-import {
-  failure,
-  getAuthHeaders,
-  getErrorMessage,
-  safeParseTestResponse,
-} from '../utils'
+import type { ConnectionOptions } from '../types'
+import { failure, getAuthHeaders, getErrorMessage } from '../utils'
+import { safeParseTestResponse } from '../utils/parsers'
 
 import { execute } from '../qualtrics'
 
-export const testConnection: ActionFactory<string | undefined, void> =
+export const testConnection =
   (connectionOptions: ConnectionOptions) => async (bearerToken?: string) => {
     const route = '/API/v3/whoami'
     try {

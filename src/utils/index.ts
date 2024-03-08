@@ -1,4 +1,4 @@
-import type { Failure, Result, Success } from './types'
+import type { Failure, Success } from '../types'
 
 export function success<T>(data: T): Success<T> {
   return {
@@ -22,18 +22,6 @@ export function getErrorMessage(error: unknown): string {
       ? error.message
       : error.toString()
     : 'An error occured'
-}
-
-export function safeParseBearerToken(response: any): Result<string> {
-  return response?.access_token && typeof response.access_token === 'string'
-    ? success(response.access_token)
-    : failure('Incorrect token format')
-}
-
-export function safeParseTestResponse(response: any): Result<void> {
-  return response?.result?.userId
-    ? success(undefined)
-    : failure('Incorrect test response format')
 }
 
 export function getAuthHeaders(

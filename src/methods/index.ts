@@ -1,2 +1,6 @@
+export { exportResponses } from './exportResponses'
 export { getBearerToken } from './getBearerToken'
+export { getResponseExportProgress } from './getResponseExportProgress'
+export { getResponseExportFile } from './getResponseExportFile'
+export { startResponseExport } from './startResponseExport'
 export { testConnection } from './testConnection'
