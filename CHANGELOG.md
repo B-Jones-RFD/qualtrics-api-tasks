@@ -1,5 +1,11 @@
 # @b-jones-rfd/qualtrics-api-tasks
 
+## 0.1.1
+
+### Patch Changes
+
+- 2f8dbdf: Added JSDoc action method descriptions
+
 ## 0.1.0
 
 ### Minor Changes
