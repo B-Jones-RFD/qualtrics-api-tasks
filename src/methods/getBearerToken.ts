@@ -3,6 +3,12 @@ import { failure, getErrorMessage } from '../utils'
 import { safeParseBearerToken } from '../utils/parsers'
 import { execute } from '../qualtrics'
 
+/**
+ * Get Bearer Token
+ *
+ * Implements OAuth Authentication (Client Credentials
+ * @see https://api.qualtrics.com/9398592961ced-o-auth-authentication-client-credentials
+ */
 export const getBearerToken: ActionFactory<
   { clientId: string; clientSecret: string; scope: string },
   string

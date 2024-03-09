@@ -76,7 +76,7 @@ import { createConnection } from '@b-jones-rfd/qualtrics-api-tasks'
 const connectionOptions = {
   datacenterId: 'az1',
   apiToken: 'my API Token', // optional
-  timeout: 20000, // optional timeout in milliseconds, default is 30 seconds
+  timeout: 20 * 1000, // optional timeout in milliseconds, default is 30 seconds
 }
 
 const connection: SiteConnection = createConnection(connectionOptions)
@@ -123,9 +123,9 @@ async function testMyQualtricsConnection(listName: string) {
 
 `timeout`
 
-| Type   | Default value | Description               | Example               | Required |
-| ------ | ------------- | ------------------------- | --------------------- | -------- |
-| number | 30000         | Qualtrics request timeout | sharepoint.domain.com | N        |
+| Type   | Default value | Description               | Example | Required |
+| ------ | ------------- | ------------------------- | ------- | -------- |
+| number | 30000         | Qualtrics request timeout | 1000    | N        |
 
 ### Actions
 

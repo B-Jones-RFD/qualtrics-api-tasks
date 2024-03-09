@@ -16,13 +16,14 @@ export async function execute(config: {
   }
 
   if (body) {
-    if (typeof body === 'string')
+    if (typeof body === 'string') {
       headers.append('Content-Type', 'application/json')
+      headers.append('Accept', 'application/json')
+    }
     options.method = 'POST'
     options.headers = headers
     options.body = body
   }
-
   const timer = setTimeout(() => controller.abort(), timeout ?? 30 * 1000)
   const response = await fetch(resource, options)
   clearTimeout(timer)
@@ -30,7 +31,7 @@ export async function execute(config: {
     const data = await response.json()
     return Promise.resolve(data)
   } else {
-    const message = await response.text()
+    const message = await response.json()
     return Promise.reject(`${response.status}: ${message}`)
   }
 }

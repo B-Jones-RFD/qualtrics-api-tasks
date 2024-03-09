@@ -7,9 +7,9 @@ export function safeParseBearerToken(response: any): Result<string> {
     : failure('Incorrect token format')
 }
 
-export function safeParseTestResponse(response: any): Result<void> {
+export function safeParseTestResponse(response: any): Result<string> {
   return response?.result?.userId
-    ? success(undefined)
+    ? success('Connection successful')
     : failure('Incorrect test response format')
 }
 

@@ -3,6 +3,12 @@ import { failure, getErrorMessage, getAuthHeaders } from '../utils'
 import { safeParseFileResponse } from '../utils/parsers'
 import { execute } from '../qualtrics'
 
+/**
+ * Get Response Export File
+ *
+ * Implements Get Response Export File.  This is step 3 in the survey response file export process.
+ * @see https://api.qualtrics.com/41296b6f2e828-get-response-export-file
+ */
 export const getResponseExportFile: ActionFactory<
   { surveyId: string; fileId: string; bearerToken?: string },
   Buffer

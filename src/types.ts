@@ -26,6 +26,10 @@ export type Connection = {
     { clientId: string; clientSecret: string; scope: string },
     string
   >
+  getResponseExportFile: Action<
+    { surveyId: string; fileId: string; bearerToken?: string },
+    Buffer
+  >
   getResponseExportProgress: Action<
     { exportProgressId: string; surveyId: string; bearerToken?: string },
     FileProgressResponse
@@ -39,7 +43,7 @@ export type Connection = {
       continuationToken?: string
     }
   >
-  testConnection: (bearerToken?: string) => Promise<Result<void>>
+  testConnection: (bearerToken?: string) => Promise<Result<string>>
 }
 
 export type ConnectionFactory = (options: ConnectionOptions) => Connection

@@ -126,7 +126,7 @@ describe('safeParseTestResponse', () => {
 
   it('should pass with correct data', () => {
     const res = fixture
-    const expected = success(undefined)
+    const expected = success('Connection successful')
     const parsed = safeParseTestResponse(res)
     expect(parsed).toStrictEqual(expected)
   })

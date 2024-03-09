@@ -3,6 +3,12 @@ import { failure, getErrorMessage, getAuthHeaders } from '../utils'
 import { safeParseStartFileExportResponse } from '../utils/parsers'
 import { execute } from '../qualtrics'
 
+/**
+ *  Start Response Export
+ *
+ * Implements Start Response File Export
+ * @see https://api.qualtrics.com/6b00592b9c013-start-response-export
+ */
 export const startResponseExport: ActionFactory<
   ExportResponsesOptions,
   {
@@ -25,8 +31,8 @@ export const startResponseExport: ActionFactory<
     try {
       const headers = getAuthHeaders(connectionOptions.apiToken, bearerToken)
       const body = JSON.stringify({
-        startDate: startDate.toISOString(),
-        endDate: endDate.toDateString(),
+        startDate: '2024-03-01T06:00:00Z', //startDate.toISOString(),
+        endDate: '2024-03-05T06:00:00Z', //endDate.toISOString(),
         format,
         ...rest,
       })

@@ -12,6 +12,12 @@ import {
   getResponseExportProgress,
 } from './'
 
+/**
+ * Export Survey Response File
+ *
+ * Implements Survey Response File Export end to end
+ * @see https://api.qualtrics.com/u9e5lh4172v0v-survey-response-export-guide
+ */
 export const exportResponses: ActionFactory<ExportResponsesOptions, Buffer> =
   (connectionOptions) => async (responseOptions) => {
     try {

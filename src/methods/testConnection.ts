@@ -4,6 +4,9 @@ import { safeParseTestResponse } from '../utils/parsers'
 
 import { execute } from '../qualtrics'
 
+/**
+ * Test connection to Qualtrics API
+ */
 export const testConnection =
   (connectionOptions: ConnectionOptions) => async (bearerToken?: string) => {
     const route = '/API/v3/whoami'
