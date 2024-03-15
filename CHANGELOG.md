@@ -1,5 +1,11 @@
 # @b-jones-rfd/qualtrics-api-tasks
 
+## 0.2.0
+
+### Minor Changes
+
+- a5028bb: Support file export multiple formats
+
 ## 0.1.1
 
 ### Patch Changes
