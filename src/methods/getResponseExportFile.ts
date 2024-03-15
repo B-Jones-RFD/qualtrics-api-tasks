@@ -1,6 +1,5 @@
 import type { ActionFactory } from '../types'
 import { failure, getErrorMessage, getAuthHeaders } from '../utils'
-import { safeParseFileResponse } from '../utils/parsers'
 import { execute } from '../qualtrics'
 
 /**
@@ -15,7 +14,7 @@ export const getResponseExportFile: ActionFactory<
 > =
   (connectionOptions) =>
   async ({ surveyId, fileId, bearerToken }) => {
-    const route = `/surveys/${surveyId}/export-responses/${fileId}/file`
+    const route = `/API/v3/surveys/${surveyId}/export-responses/${fileId}/file`
     try {
       const headers = getAuthHeaders(connectionOptions.apiToken, bearerToken)
       const config = {
@@ -25,8 +24,7 @@ export const getResponseExportFile: ActionFactory<
         timeout: connectionOptions.timeout,
       }
       const response = await execute(config)
-      const result = safeParseFileResponse(response)
-      return result
+      return response
     } catch (error) {
       const message = getErrorMessage(error)
       return failure(message)

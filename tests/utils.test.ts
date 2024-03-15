@@ -5,7 +5,6 @@ import {
   safeParseTestResponse,
   safeParseStartFileExportResponse,
   safeParseFileProgressResponse,
-  safeParseFileResponse,
 } from '../src/utils/parsers'
 
 describe('safeParseBearerToken', () => {
@@ -137,24 +136,6 @@ describe('safeParseTestResponse', () => {
     }
     const expected = failure('Incorrect test response format')
     const parsed = safeParseTestResponse(res)
-    expect(parsed).toStrictEqual(expected)
-  })
-})
-
-describe('safeParseFileResponse', () => {
-  const fixture = Buffer.from('file content')
-
-  it('should pass with correct data', () => {
-    const res = fixture
-    const expected = success(fixture)
-    const parsed = safeParseFileResponse(res)
-    expect(parsed).toStrictEqual(expected)
-  })
-
-  it('should fail with invalid response type', () => {
-    const res = { fixture }
-    const expected = failure('Incorrect file response format')
-    const parsed = safeParseFileResponse(res)
     expect(parsed).toStrictEqual(expected)
   })
 })

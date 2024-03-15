@@ -18,7 +18,6 @@ export async function execute(config: {
   if (body) {
     if (typeof body === 'string') {
       headers.append('Content-Type', 'application/json')
-      headers.append('Accept', 'application/json')
     }
     options.method = 'POST'
     options.headers = headers
@@ -28,8 +27,18 @@ export async function execute(config: {
   const response = await fetch(resource, options)
   clearTimeout(timer)
   if (response.ok) {
-    const data = await response.json()
-    return Promise.resolve(data)
+    const contentType = response.headers.get('content-type')
+
+    switch (contentType) {
+      case 'application/json':
+        return Promise.resolve(await response.json())
+      case 'application/csv':
+      case 'application/tsv':
+      case 'application/xml':
+        return Promise.resolve(await response.text())
+      default:
+        return Promise.resolve(response.body)
+    }
   } else {
     const message = await response.json()
     return Promise.reject(`${response.status}: ${message}`)

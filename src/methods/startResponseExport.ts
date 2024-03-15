@@ -27,7 +27,7 @@ export const startResponseExport: ActionFactory<
     bearerToken = undefined,
     ...rest
   }) => {
-    const route = `/surveys/${surveyId}/export-responses`
+    const route = `/API/v3/surveys/${surveyId}/export-responses`
     try {
       const headers = getAuthHeaders(connectionOptions.apiToken, bearerToken)
       const body = JSON.stringify({

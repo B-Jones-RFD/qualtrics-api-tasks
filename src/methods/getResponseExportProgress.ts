@@ -15,7 +15,7 @@ export const getResponseExportProgress: ActionFactory<
 > =
   (connectionOptions) =>
   async ({ exportProgressId, surveyId, bearerToken }) => {
-    const route = `/surveys/${surveyId}/export-responses/${exportProgressId}`
+    const route = `/API/v3/surveys/${surveyId}/export-responses/${exportProgressId}`
     try {
       const headers = getAuthHeaders(connectionOptions.apiToken, bearerToken)
       const config = {

@@ -43,9 +43,3 @@ export function safeParseFileProgressResponse(
       ? failure(`${response.error.errorCode}: ${response.error.errorMessage}`)
       : failure(`Unable to parse File Progress Response`)
 }
-
-export function safeParseFileResponse(response: any): Result<Buffer> {
-  return Buffer.isBuffer(response)
-    ? success(response)
-    : failure('Incorrect file response format')
-}
