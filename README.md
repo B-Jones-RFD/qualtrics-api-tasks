@@ -139,6 +139,64 @@ export type Action<TConfig, TResponse> = (
 
 If using the actions directly call the factory method with a ConnectionOptions object to return an action that can be used to execute a Qualtrics action.
 
+#### createDistribution(options)
+
+Implements [Create Distribution](https://api.qualtrics.com/573e3f0a94888-create-distribution).
+
+`options`
+
+| Property           | Type                   | Description                        | Required | Default |
+| ------------------ | ---------------------- | ---------------------------------- | -------- | ------- |
+| libraryId          | string                 | Quatrics Library ID                | Y        |         |
+| messageId          | string                 | Qualtrics Message ID               | Y        |         |
+| messageText        | string                 | Message text to send               | N        |         |
+| mailingListId      | string                 | Mailing List ID                    | Y        |         |
+| contactId          | string                 | Contact lookup ID for individual   | N        |         |
+| transactionBatchId | string                 | Transaction Batch ID               | N        |         |
+| fromEmail          | string                 | Originating email                  | Y        |         |
+| replyToEmail       | string                 | Email reply-to address             | N        |         |
+| fromName           | string                 | Email from name                    | Y        |         |
+| subject            | string                 | Email subject                      | Y        |         |
+| surveyId           | string                 | Qualtrics Survey ID                | Y        |         |
+| expirationDate     | Date                   | Distribution expiration date time  | Y        |         |
+| type               | enum                   | Individual, Multiple, or Anonymous | Y        |         |
+| embeddedData       | Record<string, string> | Up to 10 subkeys                   | N        |         |
+| sendDate           | Date                   | Date time to send                  | Y        |         |
+| bearerToken        | string                 | Valid Bearer Token                 | N        |         |
+
+#### createMailingList(options)
+
+Implements [Create Mailing List](https://api.qualtrics.com/3f633e4cea6cd-create-mailing-list)
+
+`options`
+
+| Property               | Type    | Description                      | Required | Default |
+| ---------------------- | ------- | -------------------------------- | -------- | ------- |
+| directoryId            | string  | Quatrics Directory ID            | Y        |         |
+| name                   | string  | Mailing List Name                | Y        |         |
+| ownerId                | string  | Owner ID                         | Y        |         |
+| prioritizeListMetadata | boolean | Import metadata as list metadata | N        | true    |
+| bearerToken            | string  | Valid Bearer Token               | N        |         |
+
+#### createReminder(options)
+
+Implements [Create Reminder Distribution](https://api.qualtrics.com/764630bb0633a-create-reminder-distribution).
+
+`options`
+
+| Property       | Type                   | Description              | Required | Default |
+| -------------- | ---------------------- | ------------------------ | -------- | ------- |
+| distributionId | string                 | Previous Distribution ID | Y        |         |
+| libraryId      | string                 | Quatrics Library ID      | Y        |         |
+| messageId      | string                 | Qualtrics Message ID     | Y        |         |
+| fromEmail      | string                 | Originating email        | Y        |         |
+| replyToEmail   | string                 | Email reply-to address   | N        |         |
+| fromName       | string                 | Email from name          | Y        |         |
+| subject        | string                 | Email subject            | Y        |         |
+| embeddedData   | Record<string, string> | Up to 10 subkeys         | N        |         |
+| sendDate       | Date                   | Date time to send        | Y        |         |
+| bearerToken    | string                 | Valid Bearer Token       | N        |         |
+
 #### exportResponses(options)
 
 Implements [Survey Response File Export](https://api.qualtrics.com/u9e5lh4172v0v-survey-response-export-guide) multistep process.
@@ -184,6 +242,32 @@ Implements [OAuth Authentication (Client Credentials)](https://api.qualtrics.com
 | clientSecret | string | Qualtrics Client Password         | Y        |
 | scope        | string | Qualtrics Client requested scopes | Y        |
 
+#### getContactsImportStatus(options)
+
+Implements [Get Contacts Import Status](https://api.qualtrics.com/c5d22705b1d45-get-transaction-contacts-import-status)
+
+`options`
+
+| Property      | Type   | Description           | Required |
+| ------------- | ------ | --------------------- | -------- |
+| directoryId   | string | Quatrics Directory ID | Y        |
+| importId      | string | Contacts Import ID    | Y        |
+| mailingListId | string | Mailing List ID       | Y        |
+| bearerToken   | string | Valid Bearer Token    | N        |
+
+#### getContactsImportSummary(options)
+
+Implements [Get Contacts Import Summary](https://api.qualtrics.com/6f0480b307053-get-transaction-contacts-import-summary)
+
+`options`
+
+| Property      | Type   | Description           | Required |
+| ------------- | ------ | --------------------- | -------- |
+| directoryId   | string | Quatrics Directory ID | Y        |
+| importId      | string | Contacts Import ID    | Y        |
+| mailingListId | string | Mailing List ID       | Y        |
+| bearerToken   | string | Valid Bearer Token    | N        |
+
 #### getResponseExportFile(options)
 
 Implements [Get Response Export File](https://api.qualtrics.com/41296b6f2e828-get-response-export-file)
@@ -207,6 +291,34 @@ Implements [Get Response Export Progress](https://api.qualtrics.com/37e6a66f74ab
 | surveyId         | string | Quatrics Survey ID | Y        |
 | exportProgressId | string | Progress ID        | Y        |
 | bearerToken      | string | Valid Bearer Token | N        |
+
+#### importContacts(options)
+
+Implements [Contact Import](https://api.qualtrics.com/1ac99fba8ca5b-contact-imports) multistep process
+
+`options`
+
+| Property        | Type      | Description           | Required |
+| --------------- | --------- | --------------------- | -------- |
+| directoryId     | string    | Quatrics Directory ID | Y        |
+| mailingListId   | string    | Mailing List ID       | Y        |
+| contacts        | Contact[] | Contacts array        | Y        |
+| transactionMeta | object    | Transaction meta data | N        |
+| bearerToken     | string    | Valid Bearer Token    | N        |
+
+#### startContactsImport(options)
+
+Implements [Create Transaction Contacts Import](https://api.qualtrics.com/bab13356ac724-create-transaction-contacts-import)
+
+`options`
+
+| Property        | Type      | Description           | Required |
+| --------------- | --------- | --------------------- | -------- |
+| directoryId     | string    | Quatrics Directory ID | Y        |
+| mailingListId   | string    | Mailing List ID       | Y        |
+| contacts        | Contact[] | Contacts array        | Y        |
+| transactionMeta | object    | Transaction meta data | N        |
+| bearerToken     | string    | Valid Bearer Token    | N        |
 
 #### startResponseExports(options)
 

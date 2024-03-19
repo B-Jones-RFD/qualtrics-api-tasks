@@ -6,6 +6,8 @@ export type Result<T> = Success<T> | Failure
 
 export type ResponseFormat = 'csv' | 'json' | 'ndjson' | 'spss' | 'tsv' | 'xml'
 
+export type Contact = unknown
+
 export type Action<TConfig, TResponse> = (
   options: TConfig
 ) => Promise<Result<TResponse>>
@@ -21,10 +23,50 @@ export type ActionFactory<TParams, TResponse> = (
 ) => Action<TParams, TResponse>
 
 export type Connection = {
+  createDistribution: ActionFactory<CreateDistributionOptions, string>
+  createMailingList: ActionFactory<
+    {
+      directoryId: string
+      name: string
+      ownerId: string
+      prioritizeListMetadata?: boolean
+      bearerToken?: string
+    },
+    string
+  >
+  createReminder: ActionFactory<CreateReminderOptions, string>
+  distributeSurveys: ActionFactory<
+    {
+      directoryId: string
+      name: string
+      ownerId: string
+      prioritizeListMetadata?: boolean
+      bearerToken?: string
+    },
+    string
+  >
   exportResponses: Action<ExportResponsesOptions, Buffer>
   getBearerToken: Action<
     { clientId: string; clientSecret: string; scope: string },
     string
+  >
+  getContactsImportStatus: ActionFactory<
+    {
+      directoryId: string
+      importId: string
+      mailingListId: string
+      bearerToken?: string
+    },
+    ContactsImportStatusResponse
+  >
+  getContactsImportSummary: ActionFactory<
+    {
+      directoryId: string
+      importId: string
+      mailingListId: string
+      bearerToken?: string
+    },
+    ContactsImportSummaryResponse
   >
   getResponseExportFile: Action<
     { surveyId: string; fileId: string; bearerToken?: string },
@@ -33,6 +75,19 @@ export type Connection = {
   getResponseExportProgress: Action<
     { exportProgressId: string; surveyId: string; bearerToken?: string },
     FileProgressResponse
+  >
+  importContacts: Action<
+    StartContactsImportOptions,
+    ContactsImportSummaryResponse
+  >
+  startContactsImport: ActionFactory<
+    StartContactsImportOptions,
+    {
+      id: string
+      contacts: Array<Contact>
+      tracking: object
+      status: string
+    }
   >
   startResponseExport: Action<
     ExportResponsesOptions,
@@ -75,9 +130,87 @@ export type ExportResponsesOptions = {
   bearerToken?: string
 }
 
+export type CreateDistributionOptions = {
+  libraryId: string
+  messageId: string
+  messageText?: string
+  mailingListId: string
+  contactId?: string
+  transactionBatchId?: string
+  fromEmail: string
+  replyToEmail?: string
+  fromName: string
+  subject: string
+  surveyId: string
+  expirationDate: Date
+  type: 'Individual' | 'Multiple' | 'Anonymous'
+  embeddedData?: Record<string, string>
+  sendDate: Date
+  bearerToken?: string
+}
+
+export type CreateReminderOptions = {
+  distributionId: string
+  libraryId: string
+  messageId: string
+  fromEmail: string
+  replyToEmail?: string
+  fromName: string
+  subject: string
+  sendDate: Date
+  embeddedData?: Record<string, string>
+  bearerToken?: string
+}
+
 export type FileProgressResponse = {
   fileId: string
   percentComplete: number
   status: string
   continuationToken?: string
+}
+
+export type StartContactsImportOptions = {
+  directoryId: string
+  mailingListId: string
+  contacts: Array<Contact>
+  transactionMeta?: {
+    fields: string[]
+    batchId: string
+  }
+  bearerToken?: string
+}
+
+export type ContactsImportSummaryResponse = {
+  percentComplete: number
+  contacts: {
+    count: {
+      added: number
+      updated: number
+      failed: number
+    }
+  }
+  invalidEmails: string[]
+  transactions: {
+    count: {
+      created: number
+    }
+  }
+  status: string
+}
+
+export type ContactsImportStatusResponse = {
+  percentComplete: number
+  contacts: {
+    count: {
+      added: number
+      updated: number
+      failed: number
+    }
+  }
+  transactions: {
+    count: {
+      created: number
+    }
+  }
+  status: string
 }
