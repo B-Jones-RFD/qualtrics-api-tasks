@@ -23,8 +23,8 @@ export type ActionFactory<TParams, TResponse> = (
 ) => Action<TParams, TResponse>
 
 export type Connection = {
-  createDistribution: ActionFactory<CreateDistributionOptions, string>
-  createMailingList: ActionFactory<
+  createDistribution: Action<CreateDistributionOptions, string>
+  createMailingList: Action<
     {
       directoryId: string
       name: string
@@ -34,23 +34,14 @@ export type Connection = {
     },
     string
   >
-  createReminder: ActionFactory<CreateReminderOptions, string>
-  distributeSurveys: ActionFactory<
-    {
-      directoryId: string
-      name: string
-      ownerId: string
-      prioritizeListMetadata?: boolean
-      bearerToken?: string
-    },
-    string
-  >
+  createReminder: Action<CreateReminderOptions, string>
+  distributeSurveys: Action<DistributionOptions, string>
   exportResponses: Action<ExportResponsesOptions, Buffer>
   getBearerToken: Action<
     { clientId: string; clientSecret: string; scope: string },
     string
   >
-  getContactsImportStatus: ActionFactory<
+  getContactsImportStatus: Action<
     {
       directoryId: string
       importId: string
@@ -59,7 +50,7 @@ export type Connection = {
     },
     ContactsImportStatusResponse
   >
-  getContactsImportSummary: ActionFactory<
+  getContactsImportSummary: Action<
     {
       directoryId: string
       importId: string
@@ -80,7 +71,7 @@ export type Connection = {
     StartContactsImportOptions,
     ContactsImportSummaryResponse
   >
-  startContactsImport: ActionFactory<
+  startContactsImport: Action<
     StartContactsImportOptions,
     {
       id: string
@@ -213,4 +204,30 @@ export type ContactsImportStatusResponse = {
     }
   }
   status: string
+}
+
+export type DistributionOptions = {
+  directoryId: string
+  mailingListName: string
+  ownerId: string
+  prioritizeListMetadata?: boolean
+  contacts: Array<Contact>
+  transactionMeta?: {
+    fields: string[]
+    batchId: string
+  }
+  libraryId: string
+  messageId: string
+  messageText?: string
+  transactionBatchId?: string
+  fromEmail: string
+  replyToEmail?: string
+  fromName: string
+  subject: string
+  surveyId: string
+  expirationDate: Date
+  type: 'Individual' | 'Multiple' | 'Anonymous'
+  embeddedData?: Record<string, string>
+  sendDate: Date
+  bearerToken?: string
 }
