@@ -6,7 +6,16 @@ export type Result<T> = Success<T> | Failure
 
 export type ResponseFormat = 'csv' | 'json' | 'ndjson' | 'spss' | 'tsv' | 'xml'
 
-export type Contact = unknown
+export type Contact = {
+  firstName?: string
+  lastName?: string
+  email: string
+  extRef?: string
+  embeddedData?: Record<string, string>
+  language?: string
+  unsubscribed?: boolean
+  transactionData?: object
+}
 
 export type Action<TConfig, TResponse> = (
   options: TConfig
@@ -217,8 +226,9 @@ export type DistributionOptions = {
     batchId: string
   }
   libraryId: string
-  messageId: string
-  messageText?: string
+  distributionMessageId: string
+  distributionMessageText?: string
+  reminderMessageId: string
   transactionBatchId?: string
   fromEmail: string
   replyToEmail?: string

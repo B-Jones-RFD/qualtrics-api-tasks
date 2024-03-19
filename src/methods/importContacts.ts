@@ -1,9 +1,7 @@
 import type {
   ActionFactory,
-  CreateDistributionOptions,
   Result,
   ContactsImportSummaryResponse,
-  ConnectionOptions,
   StartContactsImportOptions,
   ContactsImportStatusResponse,
 } from '../types'

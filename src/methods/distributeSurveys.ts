@@ -1,9 +1,4 @@
-import type {
-  Result,
-  ConnectionOptions,
-  DistributionOptions,
-  ActionFactory,
-} from '../types'
+import type { DistributionOptions, ActionFactory } from '../types'
 import { success, failure, getErrorMessage } from '../utils'
 import {
   createMailingList,
@@ -47,8 +42,8 @@ export const distributeSurveys: ActionFactory<DistributionOptions, string> =
       const createDistributionAction = createDistribution(connectionOptions)
       const distributionResponse = await createDistributionAction({
         libraryId: options.libraryId,
-        messageId: options.messageId,
-        messageText: options.messageText,
+        messageId: options.distributionMessageId,
+        messageText: options.distributionMessageText,
         mailingListId: startResponse.data,
         fromEmail: options.fromEmail,
         fromName: options.fromName,
@@ -69,7 +64,7 @@ export const distributeSurveys: ActionFactory<DistributionOptions, string> =
       const reminderResponse = await createReminderAction({
         distributionId: distributionResponse.data,
         libraryId: options.libraryId,
-        messageId: options.messageId,
+        messageId: options.reminderMessageId,
         fromEmail: options.fromEmail,
         fromName: options.fromName,
         replyToEmail: options.replyToEmail,

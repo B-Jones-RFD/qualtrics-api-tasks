@@ -24,7 +24,7 @@ export const createMailingList: ActionFactory<
     directoryId,
     name,
     ownerId,
-    prioritizeListMetadata = true,
+    prioritizeListMetadata = false,
     bearerToken = undefined,
   }) => {
     const route = `/API/v3

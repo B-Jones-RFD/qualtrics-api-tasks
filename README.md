@@ -175,7 +175,7 @@ Implements [Create Mailing List](https://api.qualtrics.com/3f633e4cea6cd-create-
 | directoryId            | string  | Quatrics Directory ID            | Y        |         |
 | name                   | string  | Mailing List Name                | Y        |         |
 | ownerId                | string  | Owner ID                         | Y        |         |
-| prioritizeListMetadata | boolean | Import metadata as list metadata | N        | true    |
+| prioritizeListMetadata | boolean | Import metadata as list metadata | N        | false   |
 | bearerToken            | string  | Valid Bearer Token               | N        |         |
 
 #### createReminder(options)
