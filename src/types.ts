@@ -6,6 +6,15 @@ export type Result<T> = Success<T> | Failure
 
 export type ResponseFormat = 'csv' | 'json' | 'ndjson' | 'spss' | 'tsv' | 'xml'
 
+export type DistributionRequestType =
+  | 'Invite'
+  | 'ThankYou'
+  | 'Reminder'
+  | 'Email'
+  | 'Portal'
+  | 'PortalInvite'
+  | 'GeneratedInvite'
+
 export type Contact = {
   firstName?: string
   lastName?: string
@@ -15,6 +24,53 @@ export type Contact = {
   language?: string
   unsubscribed?: boolean
   transactionData?: object
+}
+
+export type Distribution = {
+  id: string
+  parentDistributionId: string
+  ownerId: string
+  organizationId: string
+  requestStatus: string
+  requestType: DistributionRequestType
+  sendDate: string
+  createdDate: string
+  modifiedDate: string
+  headers: {
+    fromEmail: string
+    replyToEmail: string
+    fromName: string
+    subject: string
+  }
+  recipients: {
+    mailingListId: string
+    contactId: string
+    libraryId: string
+    sampleId: string
+  }
+  message: {
+    libraryId: string
+    messageId: string
+    messageText: string
+    messageType: string
+  }
+  surveyLink: {
+    surveyId: string
+    expirationDate: string
+    linkType: 'Individual' | 'Multiple' | 'Anonymous'
+  }
+  stats: {
+    sent: number
+    failed: number
+    started: number
+    bounced: number
+    opened: number
+    skipped: number
+    finished: number
+    complaints: number
+    blocked: number
+  }
+  embeddedData: Record<string, string>
 }
 
 export type Action<TConfig, TResponse> = (
@@ -68,6 +124,14 @@ export type Connection = {
     },
     ContactsImportSummaryResponse
   >
+  getDistribution: Action<
+    {
+      distributionId: string
+      surveyId: string
+      bearerToken?: string
+    },
+    Distribution
+  >
   getResponseExportFile: Action<
     { surveyId: string; fileId: string; bearerToken?: string },
     Buffer
@@ -79,6 +143,39 @@ export type Connection = {
   importContacts: Action<
     StartContactsImportOptions,
     ContactsImportSummaryResponse
+  >
+  listDistributions: Action<
+    {
+      surveyId: string
+      distributionRequestType: DistributionRequestType
+      mailingListId: string
+      sendStartDate: Date
+      sendEndDate: Date
+      skipToken?: string
+      useNewPaginationScheme?: boolean
+      pageSize?: number
+      bearerToken?: string
+    },
+    {
+      elements: Distribution[]
+      nextPage: string | null
+    }
+  >
+  listLibraryMessages: Action<
+    {
+      libraryId: string
+      category?: string
+      offset?: number
+      bearerToken?: string
+    },
+    {
+      elements: {
+        id: string
+        description: string
+        category: string
+      }[]
+      nextPage: string | null
+    }
   >
   startContactsImport: Action<
     StartContactsImportOptions,

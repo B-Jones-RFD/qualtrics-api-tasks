@@ -27,8 +27,7 @@ export const createMailingList: ActionFactory<
     prioritizeListMetadata = false,
     bearerToken = undefined,
   }) => {
-    const route = `/API/v3
-/directories/${directoryId}/mailinglists`
+    const route = `/API/v3/directories/${directoryId}/mailinglists`
     try {
       const headers = getAuthHeaders(connectionOptions.apiToken, bearerToken)
       const body = JSON.stringify({

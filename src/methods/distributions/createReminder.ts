@@ -1,7 +1,7 @@
-import type { ActionFactory, CreateReminderOptions } from '../types'
-import { failure, getErrorMessage, getAuthHeaders } from '../utils'
-import { safeParseCreateReminderResponse } from '../utils/parsers'
-import { execute } from '../qualtrics'
+import type { ActionFactory, CreateReminderOptions } from '../../types'
+import { failure, getErrorMessage, getAuthHeaders } from '../../utils'
+import { safeParseCreateReminderResponse } from '../../utils/parsers'
+import { execute } from '../../qualtrics'
 
 /**
  *  Create Reminder
@@ -23,8 +23,7 @@ export const createReminder: ActionFactory<CreateReminderOptions, string> =
     sendDate,
     bearerToken = undefined,
   }) => {
-    const route = `/API/v3
-/distributions/${distributionId}/reminders`
+    const route = `/API/v3/distributions/${distributionId}/reminders`
     try {
       const headers = getAuthHeaders(connectionOptions.apiToken, bearerToken)
       const body = JSON.stringify({

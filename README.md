@@ -268,6 +268,18 @@ Implements [Get Contacts Import Summary](https://api.qualtrics.com/6f0480b307053
 | mailingListId | string | Mailing List ID       | Y        |
 | bearerToken   | string | Valid Bearer Token    | N        |
 
+#### getDistribution(options)
+
+Implements [Get Distribution](https://api.qualtrics.com/f5b1d8775d803-get-distribution)
+
+`options`
+
+| Property       | Type   | Description        | Required |
+| -------------- | ------ | ------------------ | -------- |
+| distributionId | string | Distribution ID    | Y        |
+| surveyId       | string | Survey ID          | Y        |
+| bearerToken    | string | Valid Bearer Token | N        |
+
 #### getResponseExportFile(options)
 
 Implements [Get Response Export File](https://api.qualtrics.com/41296b6f2e828-get-response-export-file)
@@ -305,6 +317,37 @@ Implements [Contact Import](https://api.qualtrics.com/1ac99fba8ca5b-contact-impo
 | contacts        | Contact[] | Contacts array        | Y        |
 | transactionMeta | object    | Transaction meta data | N        |
 | bearerToken     | string    | Valid Bearer Token    | N        |
+
+#### listDistributions(options)
+
+Implements [List Distributions](https://api.qualtrics.com/234bb6b16cf6d-list-distributions)
+
+`options`
+
+| Property                | Type    | Description                     | Required | Default |
+| ----------------------- | ------- | ------------------------------- | -------- | ------- |
+| surveyId                | string  | Quatrics Survey ID              | Y        |         |
+| distributionRequestType | string  | Distribution Request Type       | Y        |         |
+| mailingListId           | string  | Mailing List ID                 | Y        |         |
+| sendStartDate           | Date    | Export start date and time      | Y        |         |
+| sendEndDate             | Date    | Export end date and time        | Y        |         |
+| skipToken               | string  | Pagination offset               | N        |         |
+| useNewPaginationScheme  | boolean | Use updated pagination          | N        | false   |
+| pageSize                | number  | Distribution elements to return | N        | 100     |
+| bearerToken             | string  | Valid Bearer Token              | N        |         |
+
+#### listLibraryMessages(options)
+
+Implements [List Library Messages](https://api.qualtrics.com/1d60a66b340fa-list-library-messages)
+
+`options`
+
+| Property    | Type   | Description         | Required |
+| ----------- | ------ | ------------------- | -------- |
+| libraryId   | string | Quatrics Library ID | Y        |
+| category    | string | Message category    | N        |
+| offset      | number | Pagination offset   | N        |
+| bearerToken | string | Valid Bearer Token  | N        |
 
 #### startContactsImport(options)
 

@@ -1,7 +1,7 @@
-import type { ActionFactory, CreateDistributionOptions } from '../types'
-import { failure, getErrorMessage, getAuthHeaders } from '../utils'
-import { safeParseCreateDistributionResponse } from '../utils/parsers'
-import { execute } from '../qualtrics'
+import type { ActionFactory, CreateDistributionOptions } from '../../types'
+import { failure, getErrorMessage, getAuthHeaders } from '../../utils'
+import { safeParseCreateDistributionResponse } from '../../utils/parsers'
+import { execute } from '../../qualtrics'
 
 /**
  *  Create Distribution

@@ -11,6 +11,9 @@ import {
   safeParseContactsImportStatus,
   safeParseCreateDistributionResponse,
   safeParseCreateReminderResponse,
+  safeParseListLibraryMessages,
+  safeParseListDistributions,
+  safeParseGetDistribution,
 } from '../src/utils/parsers'
 
 describe('safeParseBearerToken', () => {
@@ -385,6 +388,114 @@ describe('safeParseCreateReminderResponse', () => {
       `distributionId missing in Create Reminder Response`
     )
     const parsed = safeParseCreateReminderResponse(res)
+    expect(parsed).toStrictEqual(expected)
+  })
+})
+
+describe('safeParseListLibraryMessages', () => {
+  const fixture = {
+    result: {
+      elements: [],
+    },
+  }
+
+  it('should pass with correct data', () => {
+    const res = fixture
+    const expected = success(fixture.result)
+    const parsed = safeParseListLibraryMessages(res)
+    expect(parsed).toStrictEqual(expected)
+  })
+
+  it('should fail when response is incorrect type', () => {
+    const res = {
+      meta: 'bad result',
+    }
+    const expected = failure(`Unable to parse List Library Messages response`)
+    const parsed = safeParseListLibraryMessages(res)
+    expect(parsed).toStrictEqual(expected)
+  })
+
+  it('should fail when id is not in response', () => {
+    const res = {
+      result: {
+        badProp: 'Test',
+      },
+    }
+    const expected = failure(
+      `elements missing in List Library Messages response`
+    )
+    const parsed = safeParseListLibraryMessages(res)
+    expect(parsed).toStrictEqual(expected)
+  })
+})
+
+describe('safeParseGetDistribution', () => {
+  const fixture = {
+    result: {
+      id: 'testID',
+      stats: {},
+    },
+  }
+
+  it('should pass with correct data', () => {
+    const res = fixture
+    const expected = success(fixture.result)
+    const parsed = safeParseGetDistribution(res)
+    expect(parsed).toStrictEqual(expected)
+  })
+
+  it('should fail when response is incorrect type', () => {
+    const res = {
+      meta: 'bad result',
+    }
+    const expected = failure(`Unable to parse Get Distribution response`)
+    const parsed = safeParseGetDistribution(res)
+    expect(parsed).toStrictEqual(expected)
+  })
+
+  it('should fail when id is not in response', () => {
+    const res = {
+      result: {
+        badProp: 'Test',
+      },
+    }
+    const expected = failure(`Properties missing in Get Distribution response`)
+    const parsed = safeParseGetDistribution(res)
+    expect(parsed).toStrictEqual(expected)
+  })
+})
+
+describe('safeParseListDistributions', () => {
+  const fixture = {
+    result: {
+      elements: [],
+    },
+  }
+
+  it('should pass with correct data', () => {
+    const res = fixture
+    const expected = success(fixture.result)
+    const parsed = safeParseListDistributions(res)
+    expect(parsed).toStrictEqual(expected)
+  })
+
+  it('should fail when response is incorrect type', () => {
+    const res = {
+      meta: 'bad result',
+    }
+    const expected = failure(`Unable to parse List Distribution response`)
+    const parsed = safeParseListDistributions(res)
+    expect(parsed).toStrictEqual(expected)
+  })
+
+  it('should fail when id is not in response', () => {
+    const res = {
+      result: {
+        badProp: 'Test',
+      },
+    }
+    const expected = failure(`elements missing in List Distributions response`)
+    const parsed = safeParseListDistributions(res)
     expect(parsed).toStrictEqual(expected)
   })
 })

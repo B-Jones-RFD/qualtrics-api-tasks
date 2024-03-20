@@ -2,10 +2,10 @@ import type {
   ActionFactory,
   Contact,
   StartContactsImportOptions,
-} from '../types'
-import { failure, getErrorMessage, getAuthHeaders } from '../utils'
-import { safeParseStartContactsImportResponse } from '../utils/parsers'
-import { execute } from '../qualtrics'
+} from '../../types'
+import { failure, getErrorMessage, getAuthHeaders } from '../../utils'
+import { safeParseStartContactsImportResponse } from '../../utils/parsers'
+import { execute } from '../../qualtrics'
 
 /**
  *  Start Contacts Import

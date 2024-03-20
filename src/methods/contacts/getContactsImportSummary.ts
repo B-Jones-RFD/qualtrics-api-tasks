@@ -1,7 +1,7 @@
-import type { ActionFactory, ContactsImportSummaryResponse } from '../types'
-import { failure, getErrorMessage, getAuthHeaders } from '../utils'
-import { safeParseContactsImportSummary } from '../utils/parsers'
-import { execute } from '../qualtrics'
+import type { ActionFactory, ContactsImportSummaryResponse } from '../../types'
+import { failure, getErrorMessage, getAuthHeaders } from '../../utils'
+import { safeParseContactsImportSummary } from '../../utils/parsers'
+import { execute } from '../../qualtrics'
 
 /**
  *  Confirm Add Contacts

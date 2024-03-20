@@ -4,14 +4,12 @@ import type {
   ContactsImportSummaryResponse,
   StartContactsImportOptions,
   ContactsImportStatusResponse,
-} from '../types'
-import { failure, getErrorMessage } from '../utils'
-import { poll } from '../utils/poll'
-import {
-  startContactsImport,
-  getContactsImportStatus,
-  getContactsImportSummary,
-} from '.'
+} from '../../types'
+import { failure, getErrorMessage } from '../../utils'
+import { poll } from '../../utils/poll'
+import { startContactsImport } from './startContactsImport'
+import { getContactsImportStatus } from './getContactsImportStatus'
+import { getContactsImportSummary } from './getContactsImportSummary'
 
 /**
  * Import Contacts

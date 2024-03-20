@@ -3,6 +3,7 @@ import type {
   ContactsImportStatusResponse,
   ContactsImportSummaryResponse,
   FileProgressResponse,
+  Distribution,
   Result,
 } from '../types'
 import { success, failure } from './index'
@@ -119,4 +120,38 @@ export function safeParseCreateReminderResponse(response: any): Result<string> {
       ? success(response.result.distributionId)
       : failure(`distributionId missing in Create Reminder Response`)
     : failure(`Unable to parse Create Reminder Response`)
+}
+
+export function safeParseListLibraryMessages(response: any): Result<{
+  elements: {
+    id: string
+    description: string
+    category: string
+  }[]
+  nextPage: string | null
+}> {
+  return 'result' in response
+    ? 'elements' in response.result && Array.isArray(response.result.elements)
+      ? success(response.result)
+      : failure(`elements missing in List Library Messages response`)
+    : failure(`Unable to parse List Library Messages response`)
+}
+
+export function safeParseGetDistribution(response: any): Result<Distribution> {
+  return 'result' in response
+    ? 'id' in response.result && 'stats' in response.result
+      ? success(response.result)
+      : failure(`Properties missing in Get Distribution response`)
+    : failure(`Unable to parse Get Distribution response`)
+}
+
+export function safeParseListDistributions(response: any): Result<{
+  elements: Distribution[]
+  nextPage: string | null
+}> {
+  return 'result' in response
+    ? 'elements' in response.result
+      ? success(response.result)
+      : failure(`elements missing in List Distributions response`)
+    : failure(`Unable to parse List Distribution response`)
 }

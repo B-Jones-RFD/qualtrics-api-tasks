@@ -1,11 +1,9 @@
-import type { DistributionOptions, ActionFactory } from '../types'
-import { success, failure, getErrorMessage } from '../utils'
-import {
-  createMailingList,
-  importContacts,
-  createDistribution,
-  createReminder,
-} from './'
+import type { DistributionOptions, ActionFactory } from '../../types'
+import { success, failure, getErrorMessage } from '../../utils'
+import { createMailingList } from '../createMailingList'
+import { importContacts } from '../contacts/importContacts'
+import { createDistribution } from './createDistribution'
+import { createReminder } from './createReminder'
 
 /**
  * Export Survey Response File
