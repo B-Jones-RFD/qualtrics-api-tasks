@@ -1,5 +1,11 @@
 # @b-jones-rfd/qualtrics-api-tasks
 
+## 0.3.0
+
+### Minor Changes
+
+- 3bcc969: Added methods for Contacts and Distributions
+
 ## 0.2.0
 
 ### Minor Changes
