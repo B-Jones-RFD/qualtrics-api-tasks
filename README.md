@@ -1,6 +1,9 @@
+![GitHub Actions CI](https://github.com/B-Jones-RFD/qualtrics-api-tasks/actions/workflows/main.yml/badge.svg)
+[![npm version](https://img.shields.io/npm/v/@b-jones-rfd/qualtrics-api-tasks.svg?style=flat-square)](https://www.npmjs.com/package/@b-jones-rfd/qualtrics-api-tasks)
+![npm bundle size](https://img.shields.io/bundlephobia/min/%40b-jones-rfd%2Fqualtrics-api-tasks)
 [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
 
-# qualtrics-api-tasks
+# Qualtrics API Tasks
 
 Helpers to perform common tasks using the [Qualtrics API](https://api.qualtrics.com/). This is an exercise to avoid code reuse in my own projects. Use at your own risk.
 
@@ -17,7 +20,7 @@ $ npm -v && node -v
 v20.11.1
 ```
 
-[PNPM] (https://pnpm.io/) is a awesome alternative to NPM and is recommended.
+[PNPM](https://pnpm.io/) is a awesome alternative to NPM and is recommended.
 
 ## Table of contents
 
@@ -30,6 +33,13 @@ v20.11.1
   - [API](#api)
     - [createConnection](#createSiteConnection)
     - [Actions](#actions)
+      - [Authentication](#authentication)
+      - [Contacts](#contacts)
+      - [Distributions](#distributions)
+      - [Responses](#responses)
+      - [Mailing Lists](#mailing-lists)
+      - [Messages](#messages)
+      - [Utilities](#utilities)
     - [Responses](#responses)
   - [Contributing](#contributing)
   - [Versioning](#versioning)
@@ -79,12 +89,12 @@ const connectionOptions = {
   timeout: 20 * 1000, // optional timeout in milliseconds, default is 30 seconds
 }
 
-const connection: SiteConnection = createConnection(connectionOptions)
+const connection: Connection = createConnection(connectionOptions)
 
 async function getBearerToken(clientId: string, clientSecret: string) {
-  const contents = await connection.getBearerToken({ clientId, clientSecret })
-  if (contents.success) return contents.data
-  else throw new Error(contents.error)
+  const result = await connection.getBearerToken({ clientId, clientSecret })
+  if (result.success) return result.data
+  else throw new Error(result.error)
 }
 ```
 
@@ -95,19 +105,33 @@ Additionally, for single use or reduced import size, action factory methods can 
 ```ts
 import { testConnection } from '@b-jones-rfd/qualtrics-api-tasks'
 
-async function testMyQualtricsConnection(listName: string) {
-  const action = testConnection(connectionOpts)
-  const contents = await action()
-  if (contents.success) return 'Successful connection!'
-  else throw new Error(contents.error)
+async function testMyQualtricsConnection() {
+  const action = testConnection(connectionOptions)
+  const result = await action()
+  if (result.success) return result.data
+  else throw new Error(result.error)
 }
 ```
 
 ## API
 
-### createSiteConnection
+### createConnection
+
+Create a Qualtrics API Connection instance.
+
+```ts
+type ConnectionFactory = (options: ConnectionOptions) => Connection
+```
 
 #### ConnectionOptions
+
+```ts
+type ConnectionOptions = {
+  datacenterId: string
+  apiToken?: string
+  timeout?: number
+}
+```
 
 `datacenterId`
 
@@ -139,7 +163,79 @@ export type Action<TConfig, TResponse> = (
 
 If using the actions directly call the factory method with a ConnectionOptions object to return an action that can be used to execute a Qualtrics action.
 
-#### createDistribution(options)
+#### Authentication
+
+##### getBearerToken(options)
+
+Implements [OAuth Authentication (Client Credentials)](https://api.qualtrics.com/9398592961ced-o-auth-authentication-client-credentials) and returns the access token as the result data.
+
+`options`
+
+| Property     | Type   | Description                       | Required |
+| ------------ | ------ | --------------------------------- | -------- |
+| clientId     | string | Quatrics Client ID                | Y        |
+| clientSecret | string | Qualtrics Client Password         | Y        |
+| scope        | string | Qualtrics Client requested scopes | Y        |
+
+#### Contacts
+
+##### getContactsImportStatus(options)
+
+Implements [Get Contacts Import Status](https://api.qualtrics.com/c5d22705b1d45-get-transaction-contacts-import-status)
+
+`options`
+
+| Property      | Type   | Description           | Required |
+| ------------- | ------ | --------------------- | -------- |
+| directoryId   | string | Quatrics Directory ID | Y        |
+| importId      | string | Contacts Import ID    | Y        |
+| mailingListId | string | Mailing List ID       | Y        |
+| bearerToken   | string | Valid Bearer Token    | N        |
+
+##### getContactsImportSummary(options)
+
+Implements [Get Contacts Import Summary](https://api.qualtrics.com/6f0480b307053-get-transaction-contacts-import-summary)
+
+`options`
+
+| Property      | Type   | Description           | Required |
+| ------------- | ------ | --------------------- | -------- |
+| directoryId   | string | Quatrics Directory ID | Y        |
+| importId      | string | Contacts Import ID    | Y        |
+| mailingListId | string | Mailing List ID       | Y        |
+| bearerToken   | string | Valid Bearer Token    | N        |
+
+##### importContacts(options)
+
+Implements [Contact Import](https://api.qualtrics.com/1ac99fba8ca5b-contact-imports) multistep process
+
+`options`
+
+| Property        | Type      | Description           | Required |
+| --------------- | --------- | --------------------- | -------- |
+| directoryId     | string    | Quatrics Directory ID | Y        |
+| mailingListId   | string    | Mailing List ID       | Y        |
+| contacts        | Contact[] | Contacts array        | Y        |
+| transactionMeta | object    | Transaction meta data | N        |
+| bearerToken     | string    | Valid Bearer Token    | N        |
+
+##### startContactsImport(options)
+
+Implements [Create Transaction Contacts Import](https://api.qualtrics.com/bab13356ac724-create-transaction-contacts-import)
+
+`options`
+
+| Property        | Type      | Description           | Required |
+| --------------- | --------- | --------------------- | -------- |
+| directoryId     | string    | Quatrics Directory ID | Y        |
+| mailingListId   | string    | Mailing List ID       | Y        |
+| contacts        | Contact[] | Contacts array        | Y        |
+| transactionMeta | object    | Transaction meta data | N        |
+| bearerToken     | string    | Valid Bearer Token    | N        |
+
+#### Distributions
+
+##### createDistribution(options)
 
 Implements [Create Distribution](https://api.qualtrics.com/573e3f0a94888-create-distribution).
 
@@ -164,40 +260,58 @@ Implements [Create Distribution](https://api.qualtrics.com/573e3f0a94888-create-
 | sendDate           | Date                   | Date time to send                  | Y        |         |
 | bearerToken        | string                 | Valid Bearer Token                 | N        |         |
 
-#### createMailingList(options)
-
-Implements [Create Mailing List](https://api.qualtrics.com/3f633e4cea6cd-create-mailing-list)
-
-`options`
-
-| Property               | Type    | Description                      | Required | Default |
-| ---------------------- | ------- | -------------------------------- | -------- | ------- |
-| directoryId            | string  | Quatrics Directory ID            | Y        |         |
-| name                   | string  | Mailing List Name                | Y        |         |
-| ownerId                | string  | Owner ID                         | Y        |         |
-| prioritizeListMetadata | boolean | Import metadata as list metadata | N        | false   |
-| bearerToken            | string  | Valid Bearer Token               | N        |         |
-
-#### createReminder(options)
+##### createReminder(options)
 
 Implements [Create Reminder Distribution](https://api.qualtrics.com/764630bb0633a-create-reminder-distribution).
 
 `options`
 
-| Property       | Type                   | Description              | Required | Default |
-| -------------- | ---------------------- | ------------------------ | -------- | ------- |
-| distributionId | string                 | Previous Distribution ID | Y        |         |
-| libraryId      | string                 | Quatrics Library ID      | Y        |         |
-| messageId      | string                 | Qualtrics Message ID     | Y        |         |
-| fromEmail      | string                 | Originating email        | Y        |         |
-| replyToEmail   | string                 | Email reply-to address   | N        |         |
-| fromName       | string                 | Email from name          | Y        |         |
-| subject        | string                 | Email subject            | Y        |         |
-| embeddedData   | Record<string, string> | Up to 10 subkeys         | N        |         |
-| sendDate       | Date                   | Date time to send        | Y        |         |
-| bearerToken    | string                 | Valid Bearer Token       | N        |         |
+| Property       | Type                   | Description              | Required |
+| -------------- | ---------------------- | ------------------------ | -------- |
+| distributionId | string                 | Previous Distribution ID | Y        |
+| libraryId      | string                 | Quatrics Library ID      | Y        |
+| fromEmail      | string                 | Originating email        | Y        |
+| messageId      | string                 | Qualtrics Message ID     | Y        |
+| replyToEmail   | string                 | Email reply-to address   | N        |
+| fromName       | string                 | Email from name          | Y        |
+| subject        | string                 | Email subject            | Y        |
+| embeddedData   | Record<string, string> | Up to 10 subkeys         | N        |
+| sendDate       | Date                   | Date time to send        | Y        |
+| bearerToken    | string                 | Valid Bearer Token       | N        |
 
-#### exportResponses(options)
+##### getDistribution(options)
+
+Implements [Get Distribution](https://api.qualtrics.com/f5b1d8775d803-get-distribution)
+
+`options`
+
+| Property       | Type   | Description        | Required |
+| -------------- | ------ | ------------------ | -------- |
+| distributionId | string | Distribution ID    | Y        |
+| surveyId       | string | Survey ID          | Y        |
+| bearerToken    | string | Valid Bearer Token | N        |
+
+##### listDistributions(options)
+
+Implements [List Distributions](https://api.qualtrics.com/234bb6b16cf6d-list-distributions)
+
+`options`
+
+| Property                | Type    | Description                     | Required | Default |
+| ----------------------- | ------- | ------------------------------- | -------- | ------- |
+| surveyId                | string  | Quatrics Survey ID              | Y        |         |
+| distributionRequestType | string  | Distribution Request Type       | Y        |         |
+| mailingListId           | string  | Mailing List ID                 | Y        |         |
+| sendStartDate           | Date    | Export start date and time      | Y        |         |
+| sendEndDate             | Date    | Export end date and time        | Y        |         |
+| skipToken               | string  | Pagination offset               | N        |         |
+| useNewPaginationScheme  | boolean | Use updated pagination          | N        | false   |
+| pageSize                | number  | Distribution elements to return | N        | 100     |
+| bearerToken             | string  | Valid Bearer Token              | N        |         |
+
+#### Responses
+
+##### exportResponses(options)
 
 Implements [Survey Response File Export](https://api.qualtrics.com/u9e5lh4172v0v-survey-response-export-guide) multistep process.
 
@@ -230,57 +344,7 @@ Implements [Survey Response File Export](https://api.qualtrics.com/u9e5lh4172v0v
 | sortByLastModifiedDate          | boolean  | Sort responses by modified date             | N        | false   |
 | bearerToken                     | string   | Valid Bearer Token                          | N        |         |
 
-#### getBearerToken(options)
-
-Implements [OAuth Authentication (Client Credentials)](https://api.qualtrics.com/9398592961ced-o-auth-authentication-client-credentials)
-
-`options`
-
-| Property     | Type   | Description                       | Required |
-| ------------ | ------ | --------------------------------- | -------- |
-| clientId     | string | Quatrics Client ID                | Y        |
-| clientSecret | string | Qualtrics Client Password         | Y        |
-| scope        | string | Qualtrics Client requested scopes | Y        |
-
-#### getContactsImportStatus(options)
-
-Implements [Get Contacts Import Status](https://api.qualtrics.com/c5d22705b1d45-get-transaction-contacts-import-status)
-
-`options`
-
-| Property      | Type   | Description           | Required |
-| ------------- | ------ | --------------------- | -------- |
-| directoryId   | string | Quatrics Directory ID | Y        |
-| importId      | string | Contacts Import ID    | Y        |
-| mailingListId | string | Mailing List ID       | Y        |
-| bearerToken   | string | Valid Bearer Token    | N        |
-
-#### getContactsImportSummary(options)
-
-Implements [Get Contacts Import Summary](https://api.qualtrics.com/6f0480b307053-get-transaction-contacts-import-summary)
-
-`options`
-
-| Property      | Type   | Description           | Required |
-| ------------- | ------ | --------------------- | -------- |
-| directoryId   | string | Quatrics Directory ID | Y        |
-| importId      | string | Contacts Import ID    | Y        |
-| mailingListId | string | Mailing List ID       | Y        |
-| bearerToken   | string | Valid Bearer Token    | N        |
-
-#### getDistribution(options)
-
-Implements [Get Distribution](https://api.qualtrics.com/f5b1d8775d803-get-distribution)
-
-`options`
-
-| Property       | Type   | Description        | Required |
-| -------------- | ------ | ------------------ | -------- |
-| distributionId | string | Distribution ID    | Y        |
-| surveyId       | string | Survey ID          | Y        |
-| bearerToken    | string | Valid Bearer Token | N        |
-
-#### getResponseExportFile(options)
+##### getResponseExportFile(options)
 
 Implements [Get Response Export File](https://api.qualtrics.com/41296b6f2e828-get-response-export-file)
 
@@ -292,7 +356,7 @@ Implements [Get Response Export File](https://api.qualtrics.com/41296b6f2e828-ge
 | fileId      | string | File ID            | Y        |
 | bearerToken | string | Valid Bearer Token | N        |
 
-#### getResponseExportProgress(options)
+##### getResponseExportProgress(options)
 
 Implements [Get Response Export Progress](https://api.qualtrics.com/37e6a66f74ab4-get-response-export-progress)
 
@@ -304,39 +368,25 @@ Implements [Get Response Export Progress](https://api.qualtrics.com/37e6a66f74ab
 | exportProgressId | string | Progress ID        | Y        |
 | bearerToken      | string | Valid Bearer Token | N        |
 
-#### importContacts(options)
+#### Mailing Lists
 
-Implements [Contact Import](https://api.qualtrics.com/1ac99fba8ca5b-contact-imports) multistep process
+##### createMailingList(options)
 
-`options`
-
-| Property        | Type      | Description           | Required |
-| --------------- | --------- | --------------------- | -------- |
-| directoryId     | string    | Quatrics Directory ID | Y        |
-| mailingListId   | string    | Mailing List ID       | Y        |
-| contacts        | Contact[] | Contacts array        | Y        |
-| transactionMeta | object    | Transaction meta data | N        |
-| bearerToken     | string    | Valid Bearer Token    | N        |
-
-#### listDistributions(options)
-
-Implements [List Distributions](https://api.qualtrics.com/234bb6b16cf6d-list-distributions)
+Implements [Create Mailing List](https://api.qualtrics.com/3f633e4cea6cd-create-mailing-list)
 
 `options`
 
-| Property                | Type    | Description                     | Required | Default |
-| ----------------------- | ------- | ------------------------------- | -------- | ------- |
-| surveyId                | string  | Quatrics Survey ID              | Y        |         |
-| distributionRequestType | string  | Distribution Request Type       | Y        |         |
-| mailingListId           | string  | Mailing List ID                 | Y        |         |
-| sendStartDate           | Date    | Export start date and time      | Y        |         |
-| sendEndDate             | Date    | Export end date and time        | Y        |         |
-| skipToken               | string  | Pagination offset               | N        |         |
-| useNewPaginationScheme  | boolean | Use updated pagination          | N        | false   |
-| pageSize                | number  | Distribution elements to return | N        | 100     |
-| bearerToken             | string  | Valid Bearer Token              | N        |         |
+| Property               | Type    | Description                      | Required | Default |
+| ---------------------- | ------- | -------------------------------- | -------- | ------- |
+| directoryId            | string  | Quatrics Directory ID            | Y        |         |
+| name                   | string  | Mailing List Name                | Y        |         |
+| ownerId                | string  | Owner ID                         | Y        |         |
+| prioritizeListMetadata | boolean | Import metadata as list metadata | N        | false   |
+| bearerToken            | string  | Valid Bearer Token               | N        |         |
 
-#### listLibraryMessages(options)
+#### Messages
+
+##### listLibraryMessages(options)
 
 Implements [List Library Messages](https://api.qualtrics.com/1d60a66b340fa-list-library-messages)
 
@@ -349,21 +399,7 @@ Implements [List Library Messages](https://api.qualtrics.com/1d60a66b340fa-list-
 | offset      | number | Pagination offset   | N        |
 | bearerToken | string | Valid Bearer Token  | N        |
 
-#### startContactsImport(options)
-
-Implements [Create Transaction Contacts Import](https://api.qualtrics.com/bab13356ac724-create-transaction-contacts-import)
-
-`options`
-
-| Property        | Type      | Description           | Required |
-| --------------- | --------- | --------------------- | -------- |
-| directoryId     | string    | Quatrics Directory ID | Y        |
-| mailingListId   | string    | Mailing List ID       | Y        |
-| contacts        | Contact[] | Contacts array        | Y        |
-| transactionMeta | object    | Transaction meta data | N        |
-| bearerToken     | string    | Valid Bearer Token    | N        |
-
-#### startResponseExports(options)
+##### startResponseExports(options)
 
 Implements [Start Response Exports](https://api.qualtrics.com/6b00592b9c013-start-response-export)
 
@@ -396,7 +432,9 @@ Implements [Start Response Exports](https://api.qualtrics.com/6b00592b9c013-star
 | sortByLastModifiedDate          | boolean  | Sort responses by modified date             | N        | false   |
 | bearerToken                     | string   | Valid Bearer Token                          | N        |         |
 
-#### testConnection(bearerToken)
+#### Utilities
+
+##### testConnection(bearerToken)
 
 | Parameter   | Type   | Description        | Required |
 | ----------- | ------ | ------------------ | -------- |
