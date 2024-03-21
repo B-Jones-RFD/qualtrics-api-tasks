@@ -1,5 +1,11 @@
 # @b-jones-rfd/qualtrics-api-tasks
 
+## 0.3.1
+
+### Patch Changes
+
+- bb766b5: Cleaned up README
+
 ## 0.3.0
 
 ### Minor Changes
