@@ -326,15 +326,18 @@ export type DistributionOptions = {
   distributionMessageId: string
   distributionMessageText?: string
   reminderMessageId: string
+  reminderMessageText?: string
   transactionBatchId?: string
   fromEmail: string
   replyToEmail?: string
   fromName: string
-  subject: string
+  distributionSubject: string
+  reminderSubject: string
   surveyId: string
   expirationDate: Date
   type: 'Individual' | 'Multiple' | 'Anonymous'
   embeddedData?: Record<string, string>
-  sendDate: Date
+  distributionSendDate: Date
+  reminderSendDate: Date
   bearerToken?: string
 }

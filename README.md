@@ -1,6 +1,6 @@
 ![GitHub Actions CI](https://github.com/B-Jones-RFD/qualtrics-api-tasks/actions/workflows/main.yml/badge.svg)
 [![npm version](https://img.shields.io/npm/v/@b-jones-rfd/qualtrics-api-tasks.svg?style=flat-square)](https://www.npmjs.com/package/@b-jones-rfd/qualtrics-api-tasks)
-![npm bundle size](https://img.shields.io/bundlephobia/min/%40b-jones-rfd%2Fqualtrics-api-tasks)
+[![npm bundle size](https://img.shields.io/bundlephobia/min/%40b-jones-rfd%2Fqualtrics-api-tasks)](https://bundlephobia.com/package/@b-jones-rfd/qualtrics-api-tasks)
 [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
 
 # Qualtrics API Tasks
@@ -207,7 +207,11 @@ Implements [Get Contacts Import Summary](https://api.qualtrics.com/6f0480b307053
 
 ##### importContacts(options)
 
-Implements [Contact Import](https://api.qualtrics.com/1ac99fba8ca5b-contact-imports) multistep process
+Implements [Contact Import](https://api.qualtrics.com/1ac99fba8ca5b-contact-imports) multistep process. This runs the following actions:
+
+1. [Start Contacts Import](#startcontactsimportoptions)
+2. Polls [Get Contacts Import Status](#getcontactsimportstatusoptions)
+3. [Get Contacts Import Summary](#getcontactsimportsummaryoptions)
 
 `options`
 
@@ -279,6 +283,44 @@ Implements [Create Reminder Distribution](https://api.qualtrics.com/764630bb0633
 | sendDate       | Date                   | Date time to send        | Y        |
 | bearerToken    | string                 | Valid Bearer Token       | N        |
 
+##### distributeSurveys(options)
+
+Multistep process to execute a survey distribution. Runs the following actions:
+
+1. [Create Mailing List](#createmailinglistoptions)
+2. [Import Contacts](#importcontactsoptions)
+3. [Create Distribution](#createdistributionoptions)
+4. [Create Reminder](#createreminderoptions)
+
+`options`
+
+| Property                | Type                   | Description                        | Required | Default |
+| ----------------------- | ---------------------- | ---------------------------------- | -------- | ------- |
+| directoryId             | string                 | Quatrics Directory ID              | Y        |         |
+| mailingListName         | string                 | Mailing List Name                  | Y        |         |
+| ownerId                 | string                 | Owner ID                           | Y        |         |
+| prioritizeListMetadata  | boolean                | Import metadata as list metadata   | N        | false   |
+| contacts                | Contact[]              | Contacts array                     | Y        |         |
+| transactionMeta         | object                 | Transaction meta data              | N        |         |
+| libraryId               | string                 | Quatrics Library ID                | Y        |         |
+| distributionMessageId   | string                 | Distribution Message ID            | Y        |         |
+| distributionMessageText | string                 | Message text to send               | N        |         |
+| reminderMessageId       | string                 | Reminder Message ID                | Y        |         |
+| reminderMessageText     | string                 | Reminder message text to send      | N        |         |
+| transactionBatchId      | string                 | Transaction Batch ID               | N        |         |
+| fromEmail               | string                 | Originating email                  | Y        |         |
+| replyToEmail            | string                 | Email reply-to address             | N        |         |
+| fromName                | string                 | Email from name                    | Y        |         |
+| distributionSubject     | string                 | Distribution email subject         | Y        |         |
+| reminderSubject         | string                 | Reminder email subject             | Y        |         |
+| surveyId                | string                 | Qualtrics Survey ID                | Y        |         |
+| expirationDate          | Date                   | Distribution expiration date time  | Y        |         |
+| type                    | enum                   | Individual, Multiple, or Anonymous | Y        |         |
+| embeddedData            | Record<string, string> | Up to 10 subkeys                   | N        |         |
+| distributionSendDate    | Date                   | Date time to send distribution     | Y        |         |
+| reminderSendDate        | Date                   | Date time to send reminder         | Y        |         |
+| bearerToken             | string                 | Valid Bearer Token                 | N        |         |
+
 ##### getDistribution(options)
 
 Implements [Get Distribution](https://api.qualtrics.com/f5b1d8775d803-get-distribution)
@@ -313,7 +355,11 @@ Implements [List Distributions](https://api.qualtrics.com/234bb6b16cf6d-list-dis
 
 ##### exportResponses(options)
 
-Implements [Survey Response File Export](https://api.qualtrics.com/u9e5lh4172v0v-survey-response-export-guide) multistep process.
+Implements [Survey Response File Export](https://api.qualtrics.com/u9e5lh4172v0v-survey-response-export-guide) multistep process. Runs the following actions:
+
+1. [Start Response Export](#startresponseexportsoptions)
+2. Polls [Get Response Export Progress](#getresponseexportprogressoptions)
+3. [Get Response Export File](#getresponseexportfileoptions)
 
 `options`
 

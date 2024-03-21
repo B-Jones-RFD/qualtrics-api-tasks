@@ -46,12 +46,12 @@ export const distributeSurveys: ActionFactory<DistributionOptions, string> =
         fromEmail: options.fromEmail,
         fromName: options.fromName,
         replyToEmail: options.replyToEmail,
-        subject: options.subject,
+        subject: options.distributionSubject,
         surveyId: options.surveyId,
         expirationDate: options.expirationDate,
         type: options.type,
         embeddedData: options.embeddedData,
-        sendDate: options.sendDate,
+        sendDate: options.distributionSendDate,
         bearerToken: options.bearerToken,
       })
       if (!distributionResponse.success)
@@ -66,9 +66,9 @@ export const distributeSurveys: ActionFactory<DistributionOptions, string> =
         fromEmail: options.fromEmail,
         fromName: options.fromName,
         replyToEmail: options.replyToEmail,
-        subject: options.subject,
+        subject: options.reminderSubject,
         embeddedData: options.embeddedData,
-        sendDate: options.sendDate,
+        sendDate: options.reminderSendDate,
         bearerToken: options.bearerToken,
       })
       if (!reminderResponse.success) return failure(reminderResponse.error)
