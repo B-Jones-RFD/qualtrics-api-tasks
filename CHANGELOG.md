@@ -1,5 +1,11 @@
 # @b-jones-rfd/qualtrics-api-tasks
 
+## 0.3.3
+
+### Patch Changes
+
+- e64a943: Fix export responses date range
+
 ## 0.3.2
 
 ### Patch Changes
