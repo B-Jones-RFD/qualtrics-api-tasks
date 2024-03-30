@@ -342,10 +342,10 @@ Implements [List Distributions](https://api.qualtrics.com/234bb6b16cf6d-list-dis
 | Property                | Type    | Description                     | Required | Default |
 | ----------------------- | ------- | ------------------------------- | -------- | ------- |
 | surveyId                | string  | Quatrics Survey ID              | Y        |         |
-| distributionRequestType | string  | Distribution Request Type       | Y        |         |
-| mailingListId           | string  | Mailing List ID                 | Y        |         |
 | sendStartDate           | Date    | Export start date and time      | Y        |         |
 | sendEndDate             | Date    | Export end date and time        | Y        |         |
+| mailingListId           | string  | Mailing List ID                 | N        |         |
+| distributionRequestType | string  | Distribution Request Type       | N        |         |
 | skipToken               | string  | Pagination offset               | N        |         |
 | useNewPaginationScheme  | boolean | Use updated pagination          | N        | false   |
 | pageSize                | number  | Distribution elements to return | N        | 100     |

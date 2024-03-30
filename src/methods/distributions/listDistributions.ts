@@ -16,10 +16,10 @@ import { execute } from '../../qualtrics'
 export const listDistributions: ActionFactory<
   {
     surveyId: string
-    distributionRequestType: DistributionRequestType
-    mailingListId: string
     sendStartDate: Date
     sendEndDate: Date
+    distributionRequestType?: DistributionRequestType
+    mailingListId?: string
     skipToken?: string
     useNewPaginationScheme?: boolean
     pageSize?: number
@@ -46,11 +46,12 @@ export const listDistributions: ActionFactory<
       const headers = getAuthHeaders(connectionOptions.apiToken, bearerToken)
       const qs = new URLSearchParams({
         surveyId,
-        distributionRequestType,
-        mailingListId,
         sendStartDate: sendStartDate.toISOString(),
         sendEndDate: sendEndDate.toISOString(),
       })
+      if (mailingListId) qs.append('mailingListId', mailingListId)
+      if (distributionRequestType)
+        qs.append('distributionRequestType', distributionRequestType)
       if (skipToken) qs.append('skipToken', skipToken)
       if (useNewPaginationScheme)
         qs.append('useNewPaginationScheme', useNewPaginationScheme.toString())

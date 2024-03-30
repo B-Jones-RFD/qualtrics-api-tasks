@@ -147,10 +147,10 @@ export type Connection = {
   listDistributions: Action<
     {
       surveyId: string
-      distributionRequestType: DistributionRequestType
-      mailingListId: string
       sendStartDate: Date
       sendEndDate: Date
+      distributionRequestType?: DistributionRequestType
+      mailingListId?: string
       skipToken?: string
       useNewPaginationScheme?: boolean
       pageSize?: number
