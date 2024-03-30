@@ -1,5 +1,11 @@
 # @b-jones-rfd/qualtrics-api-tasks
 
+## 0.3.4
+
+### Patch Changes
+
+- da8c841: Update required props listDistributions
+
 ## 0.3.3
 
 ### Patch Changes
