@@ -31,8 +31,8 @@ export const startResponseExport: ActionFactory<
     try {
       const headers = getAuthHeaders(connectionOptions.apiToken, bearerToken)
       const body = JSON.stringify({
-        startDate: '2024-03-01T06:00:00Z', //startDate.toISOString(),
-        endDate: '2024-03-05T06:00:00Z', //endDate.toISOString(),
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
         format,
         ...rest,
       })
