@@ -341,9 +341,9 @@ Implements [List Distributions](https://api.qualtrics.com/234bb6b16cf6d-list-dis
 
 | Property                | Type    | Description                     | Required | Default |
 | ----------------------- | ------- | ------------------------------- | -------- | ------- |
+| surveyId                | string  | Quatrics Survey ID              | Y        |         |
 | sendStartDate           | Date    | Export start date and time      | Y        |         |
 | sendEndDate             | Date    | Export end date and time        | Y        |         |
-| surveyId                | string  | Quatrics Survey ID              | N        |         |
 | mailingListId           | string  | Mailing List ID                 | N        |         |
 | distributionRequestType | string  | Distribution Request Type       | N        |         |
 | skipToken               | string  | Pagination offset               | N        |         |

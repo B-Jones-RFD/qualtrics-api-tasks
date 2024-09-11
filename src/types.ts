@@ -148,7 +148,7 @@ export type Connection = {
     {
       sendStartDate: Date
       sendEndDate: Date
-      surveyId?: string
+      surveyId: string
       distributionRequestType?: DistributionRequestType
       mailingListId?: string
       skipToken?: string
