@@ -1,5 +1,11 @@
 # @b-jones-rfd/qualtrics-api-tasks
 
+## 0.3.6
+
+### Patch Changes
+
+- 3bb9e4f: Revert list distributions params change
+
 ## 0.3.5
 
 ### Patch Changes
