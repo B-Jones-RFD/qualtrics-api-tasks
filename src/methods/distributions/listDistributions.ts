@@ -15,9 +15,9 @@ import { execute } from '../../qualtrics'
  */
 export const listDistributions: ActionFactory<
   {
-    surveyId: string
     sendStartDate: Date
     sendEndDate: Date
+    surveyId?: string
     distributionRequestType?: DistributionRequestType
     mailingListId?: string
     skipToken?: string
@@ -45,10 +45,10 @@ export const listDistributions: ActionFactory<
     try {
       const headers = getAuthHeaders(connectionOptions.apiToken, bearerToken)
       const qs = new URLSearchParams({
-        surveyId,
         sendStartDate: sendStartDate.toISOString(),
         sendEndDate: sendEndDate.toISOString(),
       })
+      if (surveyId) qs.append('surveyId', surveyId)
       if (mailingListId) qs.append('mailingListId', mailingListId)
       if (distributionRequestType)
         qs.append('distributionRequestType', distributionRequestType)
