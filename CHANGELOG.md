@@ -1,5 +1,11 @@
 # @b-jones-rfd/qualtrics-api-tasks
 
+## 0.3.5
+
+### Patch Changes
+
+- 6d085dc: Update list distribution to make survey id optional
+
 ## 0.3.4
 
 ### Patch Changes
