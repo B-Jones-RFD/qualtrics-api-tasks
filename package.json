@@ -12,11 +12,22 @@
     "build": "tsup src/index.ts --format cjs,esm --dts",
     "lint": "tsc",
     "ci": "pnpm run lint && pnpm run test && pnpm run build",
-    "release": "pnpm run lint && pnpm run test && pnpm run build && changeset publish"
+    "release": "pnpm run build && pnpm publish -r --no-git-checks"
   },
   "keywords": [],
   "author": "B-Jones-RFD",
   "license": "MIT",
+  "packageManager": "pnpm@10.12.1",
+  "engines": {
+    "node": ">=22"
+  },
+   "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/B-Jones-RFD/qualtrics-api-tasks.git"
+  },
   "devDependencies": {
     "@changesets/cli": "^2.27.1",
     "@types/node": "^20.11.20",
@@ -24,8 +35,5 @@
     "tsup": "^8.0.2",
     "typescript": "^5.3.3",
     "vitest": "^1.3.1"
-  },
-  "engines": {
-    "node": ">=18"
   }
 }
