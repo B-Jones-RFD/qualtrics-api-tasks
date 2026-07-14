@@ -1,5 +1,11 @@
 # @b-jones-rfd/qualtrics-api-tasks
 
+## 0.3.7
+
+### Patch Changes
+
+- abe7e92: Update package deployment
+
 ## 0.3.6
 
 ### Patch Changes

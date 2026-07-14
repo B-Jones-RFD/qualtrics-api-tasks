@@ -1,6 +1,6 @@
 {
   "name": "@b-jones-rfd/qualtrics-api-tasks",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "description": "Perform common tasks using the Qualtrics API",
   "private": false,
   "main": "./dist/index.js",
@@ -21,7 +21,7 @@
   "engines": {
     "node": ">=22"
   },
-   "publishConfig": {
+  "publishConfig": {
     "access": "public"
   },
   "repository": {
