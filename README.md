@@ -9,7 +9,7 @@ Helpers to perform common tasks using the [Qualtrics API](https://api.qualtrics.
 
 ## Prerequisites
 
-This project requires NodeJS (version >= 22) and NPM.
+This project requires NodeJS (version >= 20) and NPM.
 [Node](http://nodejs.org/) and [NPM](https://npmjs.org/) are really easy to install.
 To make sure you have them available on your machine,
 try running the following command.
