@@ -1,6 +1,6 @@
 {
   "name": "@b-jones-rfd/qualtrics-api-tasks",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Perform common tasks using the Qualtrics API",
   "private": false,
   "type": "commonjs",
