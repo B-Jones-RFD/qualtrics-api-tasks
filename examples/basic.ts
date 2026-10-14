@@ -2,7 +2,7 @@
  * Usage examples. Not part of the published package; type-checked by
  * `pnpm lint` so they stay in sync with the API.
  */
-import { createConnection, exportResponseData } from '../src'
+import { createConnection, exportResponses } from '../src'
 import type { ConnectionOptions } from '../src'
 
 const connectionOptions: ConnectionOptions = {
@@ -40,7 +40,7 @@ export async function listMessages(libraryId: string) {
 
 // Using a standalone factory action; the decoded CSV text comes back
 export async function exportLastWeek(surveyId: string) {
-  const action = exportResponseData(connectionOptions)
+  const action = exportResponses(connectionOptions)
   const endDate = new Date()
   const startDate = new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1000)
   const res = await action({ surveyId, startDate, endDate, format: 'csv' })

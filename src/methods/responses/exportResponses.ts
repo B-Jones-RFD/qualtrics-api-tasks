@@ -1,24 +1,34 @@
-import type { ActionFactory, ExportResponsesOptions } from '../../types'
+import type {
+  ActionFactory,
+  ExportResponsesOptions,
+  ResponseExportData,
+} from '../../types'
 import { toFailure } from '../../errors'
+import { createConnectionContext } from '../../context'
 import { failure, isFailedStatus } from '../../utils'
 import { poll } from '../../utils/poll'
 import { startResponseExport } from './startResponseExport'
 import { getResponseExportFile } from './getResponseExportFile'
 import { getResponseExportProgress } from './getResponseExportProgress'
-import { createConnectionContext } from '../../context'
+import { decodeResponseExport } from './decodeResponseExport'
 
 const POLL_INTERVAL_MS = 1000
 const POLL_MAX_ATTEMPTS = 300
 
 /**
- * Export Survey Response File
+ * Export Survey Responses
  *
  * Implements Survey Response File Export end to end: starts the export,
- * polls its progress once a second (up to five minutes) and downloads the
- * file. The data is a zip archive unless `compress: false` was passed.
+ * polls its progress once a second (up to five minutes), downloads the file
+ * and decodes it. The data is the export's contents — a UTF-8 string for
+ * `csv`/`tsv`/`json`/`ndjson`/`xml` and a `Buffer` for `spss` — whether or
+ * not Qualtrics compressed it. Use the three-step actions for the raw bytes.
  * @see https://api.qualtrics.com/u9e5lh4172v0v-survey-response-export-guide
  */
-export const exportResponses: ActionFactory<ExportResponsesOptions, Buffer> =
+export const exportResponses: ActionFactory<
+  ExportResponsesOptions,
+  ResponseExportData
+> =
   (connectionOptions, context = createConnectionContext(connectionOptions)) =>
   async (responseOptions) => {
     try {
@@ -61,7 +71,7 @@ export const exportResponses: ActionFactory<ExportResponsesOptions, Buffer> =
         )
 
       // Step 3
-      return await getResponseExportFile(
+      const file = await getResponseExportFile(
         connectionOptions,
         context
       )({
@@ -69,6 +79,16 @@ export const exportResponses: ActionFactory<ExportResponsesOptions, Buffer> =
         fileId: progressResponse.data.fileId,
         ...request,
       })
+      if (!file.success) return file
+
+      // Step 4
+      const decoded = decodeResponseExport(
+        file.data,
+        responseOptions.format ?? 'csv'
+      )
+      return decoded.success
+        ? decoded
+        : { ...decoded, error: `Error in exportResponses: ${decoded.error}` }
     } catch (error) {
       return toFailure('exportResponses', error)
     }

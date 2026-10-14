@@ -519,11 +519,8 @@ export type Connection = {
   /**
    * Calls `/API/v3/whoami` to verify the credentials. Resolves to
    * `'Connection successful'`.
-   *
-   * Accepts {@link RequestOptions}; passing a bare bearer token string is
-   * deprecated and will be removed in 1.0.
    */
-  testConnection: (options?: RequestOptions | string) => Promise<Result<string>>
+  testConnection: (options?: RequestOptions) => Promise<Result<string>>
 
   // --- Contacts -----------------------------------------------------------
 
@@ -649,18 +646,17 @@ export type Connection = {
 
   /**
    * Exports survey responses end to end: starts the export, polls its
-   * progress once a second (up to five minutes) and downloads the file.
-   * Resolves to the raw file bytes — a zip archive unless `compress: false`
-   * was passed. Prefer {@link Connection.exportResponseData} for the decoded
-   * contents; in 1.0 this action will return the decoded contents itself.
+   * progress once a second (up to five minutes), downloads the file and
+   * decodes it. Resolves to the export's contents — a UTF-8 string for the
+   * text formats, a `Buffer` for `spss` — whether or not Qualtrics
+   * compressed it. Fails with `HTTP` if Qualtrics reports the export failed
+   * and `TIMEOUT` if it does not finish in time. Use the three step actions
+   * below for the raw file.
    * @see https://api.qualtrics.com/u9e5lh4172v0v-survey-response-export-guide
    */
-  exportResponses: Action<ExportResponsesOptions, Buffer>
+  exportResponses: Action<ExportResponsesOptions, ResponseExportData>
 
-  /**
-   * Like {@link Connection.exportResponses} but resolves to the decoded
-   * export: a UTF-8 string for the text formats, a `Buffer` for `spss`.
-   */
+  /** @deprecated Alias of {@link Connection.exportResponses}; removed in 2.0. */
   exportResponseData: Action<ExportResponsesOptions, ResponseExportData>
 
   /** Step 1 of a response export: starts it and returns the `progressId`. */
