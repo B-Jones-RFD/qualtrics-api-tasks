@@ -1,54 +1,49 @@
-import type { ActionFactory, ExportResponsesOptions } from '../../types'
-import { failure, getErrorMessage, getAuthHeaders } from '../../utils'
+import type {
+  ActionFactory,
+  StartResponseExportOptions,
+  StartResponseExportResponse,
+} from '../../types'
+import { toFailure } from '../../errors'
+import { segment } from '../../utils'
 import { safeParseStartFileExportResponse } from '../../utils/parsers'
 import { execute } from '../../qualtrics'
 
 /**
- *  Start Response Export
+ * Start Response Export
  *
- * Implements Start Response File Export
+ * Implements Start Response Export. This is step 1 in the survey response
+ * file export process.
  * @see https://api.qualtrics.com/6b00592b9c013-start-response-export
  */
 export const startResponseExport: ActionFactory<
-  ExportResponsesOptions,
-  {
-    progressId: string
-    percentComplete: number
-    status: string
-    continuationToken?: string
-  }
+  StartResponseExportOptions,
+  StartResponseExportResponse
 > =
   (connectionOptions) =>
   async ({
     surveyId,
     startDate,
     endDate,
-    format = 'csv' as const,
-    bearerToken = undefined,
+    format = 'csv',
+    bearerToken,
+    timeout,
+    signal,
     ...rest
   }) => {
-    const route = `/API/v3/surveys/${surveyId}/export-responses`
     try {
-      const headers = getAuthHeaders(connectionOptions.apiToken, bearerToken)
-      const body = JSON.stringify({
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        format,
-        ...rest,
+      const response = await execute({
+        connectionOptions,
+        request: { bearerToken, timeout, signal },
+        route: `/API/v3/surveys/${segment(surveyId)}/export-responses`,
+        body: JSON.stringify({
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+          format,
+          ...rest,
+        }),
       })
-      const config = {
-        datacenterId: connectionOptions.datacenterId,
-        route,
-        headers,
-        body,
-        timeout: connectionOptions.timeout,
-      }
-
-      const response = await execute(config)
-      const result = safeParseStartFileExportResponse(response)
-      return result
+      return safeParseStartFileExportResponse(response)
     } catch (error) {
-      const message = getErrorMessage(error)
-      return failure(message)
+      return toFailure('startResponseExport', error)
     }
   }

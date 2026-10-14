@@ -1,5 +1,5 @@
-import type { ActionFactory } from '../types'
-import { failure, getErrorMessage } from '../utils'
+import type { ActionFactory, GetBearerTokenOptions } from '../types'
+import { toFailure } from '../errors'
 import { safeParseBearerToken } from '../utils/parsers'
 import { execute } from '../qualtrics'
 
@@ -9,37 +9,29 @@ import { execute } from '../qualtrics'
  * Implements OAuth Authentication (Client Credentials)
  * @see https://api.qualtrics.com/9398592961ced-o-auth-authentication-client-credentials
  */
-export const getBearerToken: ActionFactory<
-  { clientId: string; clientSecret: string; scope: string },
-  string
-> =
+export const getBearerToken: ActionFactory<GetBearerTokenOptions, string> =
   (connectionOptions) =>
-  async ({ clientId, clientSecret, scope }) => {
-    const route = `/oauth2/token`
+  async ({ clientId, clientSecret, scope, ...request }) => {
     try {
-      const { datacenterId, timeout } = connectionOptions
       const headers = new Headers({
         Authorization:
           'Basic ' +
           Buffer.from(`${clientId}:${clientSecret}`).toString('base64'),
+        'Content-Type': 'application/x-www-form-urlencoded',
       })
-      headers.set('Content-Type', 'application/x-www-form-urlencoded')
       const body = new URLSearchParams({
         grant_type: 'client_credentials',
         scope,
       })
-
       const response = await execute({
-        datacenterId,
-        route,
+        connectionOptions,
+        request,
+        route: '/oauth2/token',
         headers,
         body,
-        timeout,
       })
-      const result = safeParseBearerToken(response)
-      return result
+      return safeParseBearerToken(response)
     } catch (error) {
-      const message = getErrorMessage(error)
-      return failure(message)
+      return toFailure('getBearerToken', error)
     }
   }

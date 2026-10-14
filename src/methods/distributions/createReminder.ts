@@ -1,13 +1,14 @@
 import type { ActionFactory, CreateReminderOptions } from '../../types'
-import { failure, getErrorMessage, getAuthHeaders } from '../../utils'
+import { toFailure } from '../../errors'
+import { segment } from '../../utils'
 import { safeParseCreateReminderResponse } from '../../utils/parsers'
 import { execute } from '../../qualtrics'
 
 /**
- *  Create Reminder
+ * Create Reminder
  *
  * Implements Create Reminder Distribution
- * @see https://api.qualtrics.com/764630bb0633a-create-reminder-distribution
+ * @see https://api.qualtrics.com/f4e0d2c4c6a0e-create-reminder-distribution
  */
 export const createReminder: ActionFactory<CreateReminderOptions, string> =
   (connectionOptions) =>
@@ -21,37 +22,23 @@ export const createReminder: ActionFactory<CreateReminderOptions, string> =
     subject,
     embeddedData,
     sendDate,
-    bearerToken = undefined,
+    ...request
   }) => {
-    const route = `/API/v3/distributions/${distributionId}/reminders`
     try {
-      const headers = getAuthHeaders(connectionOptions.apiToken, bearerToken)
       const body = JSON.stringify({
-        message: {
-          libraryId,
-          messageId,
-        },
-        header: {
-          fromEmail,
-          replyToEmail,
-          fromName,
-          subject,
-        },
+        message: { libraryId, messageId },
+        header: { fromEmail, replyToEmail, fromName, subject },
         embeddedData,
         sendDate,
       })
-      const config = {
-        datacenterId: connectionOptions.datacenterId,
-        route,
-        headers,
+      const response = await execute({
+        connectionOptions,
+        request,
+        route: `/API/v3/distributions/${segment(distributionId)}/reminders`,
         body,
-        timeout: connectionOptions.timeout,
-      }
-      const response = await execute(config)
-      const result = safeParseCreateReminderResponse(response)
-      return result
+      })
+      return safeParseCreateReminderResponse(response)
     } catch (error) {
-      const message = getErrorMessage(error)
-      return failure(message)
+      return toFailure('createReminder', error)
     }
   }

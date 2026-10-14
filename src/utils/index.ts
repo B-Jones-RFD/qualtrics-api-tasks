@@ -1,4 +1,4 @@
-import type { Failure, Success } from '../types'
+import type { Failure, FailureCode, Success } from '../types'
 
 export function success<T>(data: T): Success<T> {
   return {
@@ -7,21 +7,16 @@ export function success<T>(data: T): Success<T> {
   }
 }
 
-export function failure(error: string): Failure {
+/**
+ * Builds a {@link Failure}. Defaults to code `PARSE`, which is what every
+ * `safeParse*` helper reports.
+ */
+export function failure(error: string, code: FailureCode = 'PARSE'): Failure {
   return {
     success: false,
     error,
+    code,
   }
-}
-
-export function getErrorMessage(error: unknown): string {
-  return error
-    ? typeof error === 'object' &&
-      'message' in error &&
-      typeof error.message === 'string'
-      ? error.message
-      : error.toString()
-    : 'An error occurred'
 }
 
 /**
@@ -44,6 +39,11 @@ export function getAuthHeaders(
   throw new Error(
     'Unable to authorize request. Bearer Token or Api Token required.'
   )
+}
+
+/** Percent-encodes one URL path segment (an id). */
+export function segment(value: string): string {
+  return encodeURIComponent(value)
 }
 
 /** True when a Qualtrics job status reports a terminal failure. */

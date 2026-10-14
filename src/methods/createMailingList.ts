@@ -1,22 +1,17 @@
-import type { ActionFactory } from '../types'
-import { failure, getErrorMessage, getAuthHeaders } from '../utils'
+import type { ActionFactory, CreateMailingListOptions } from '../types'
+import { toFailure } from '../errors'
+import { segment } from '../utils'
 import { safeParseCreateMailingListResponse } from '../utils/parsers'
 import { execute } from '../qualtrics'
 
 /**
- *  Create Mailing List
+ * Create Mailing List
  *
  * Implements Create Mailing List
  * @see https://api.qualtrics.com/3f633e4cea6cd-create-mailing-list
  */
 export const createMailingList: ActionFactory<
-  {
-    directoryId: string
-    name: string
-    ownerId: string
-    prioritizeListMetadata?: boolean
-    bearerToken?: string
-  },
+  CreateMailingListOptions,
   string
 > =
   (connectionOptions) =>
@@ -25,29 +20,17 @@ export const createMailingList: ActionFactory<
     name,
     ownerId,
     prioritizeListMetadata = false,
-    bearerToken = undefined,
+    ...request
   }) => {
-    const route = `/API/v3/directories/${directoryId}/mailinglists`
     try {
-      const headers = getAuthHeaders(connectionOptions.apiToken, bearerToken)
-      const body = JSON.stringify({
-        name,
-        ownerId,
-        prioritizeListMetadata,
+      const response = await execute({
+        connectionOptions,
+        request,
+        route: `/API/v3/directories/${segment(directoryId)}/mailinglists`,
+        body: JSON.stringify({ name, ownerId, prioritizeListMetadata }),
       })
-
-      const config = {
-        datacenterId: connectionOptions.datacenterId,
-        route,
-        headers,
-        body,
-        timeout: connectionOptions.timeout,
-      }
-      const response = await execute(config)
-      const result = safeParseCreateMailingListResponse(response)
-      return result
+      return safeParseCreateMailingListResponse(response)
     } catch (error) {
-      const message = getErrorMessage(error)
-      return failure(message)
+      return toFailure('createMailingList', error)
     }
   }

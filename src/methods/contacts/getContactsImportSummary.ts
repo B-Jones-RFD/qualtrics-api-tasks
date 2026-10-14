@@ -1,40 +1,36 @@
-import type { ActionFactory, ContactsImportSummaryResponse } from '../../types'
-import { failure, getErrorMessage, getAuthHeaders } from '../../utils'
+import type {
+  ActionFactory,
+  ContactsImportSummaryResponse,
+  GetContactsImportSummaryOptions,
+} from '../../types'
+import { toFailure } from '../../errors'
+import { segment } from '../../utils'
 import { safeParseContactsImportSummary } from '../../utils/parsers'
 import { execute } from '../../qualtrics'
 
 /**
- *  Confirm Add Contacts
+ * Get Contacts Import Summary
  *
- * Implements Create Transaction Contacts Import
- * @see https://api.qualtrics.com/6f0480b307053-get-transaction-contacts-import-summary
+ * Implements Get Transaction Contacts Import Summary. This is step 3 in the
+ * contacts import process.
+ * @see https://api.qualtrics.com/1ac99fba8ca5b-contact-imports
  */
 export const getContactsImportSummary: ActionFactory<
-  {
-    directoryId: string
-    importId: string
-    mailingListId: string
-    bearerToken?: string
-  },
+  GetContactsImportSummaryOptions,
   ContactsImportSummaryResponse
 > =
   (connectionOptions) =>
-  async ({ directoryId, importId, mailingListId, bearerToken = undefined }) => {
-    const route = `/API/v3
-/directories/${directoryId}/mailinglists/${mailingListId}/transactioncontacts/${importId}/summary`
+  async ({ directoryId, importId, mailingListId, ...request }) => {
     try {
-      const headers = getAuthHeaders(connectionOptions.apiToken, bearerToken)
-      const config = {
-        datacenterId: connectionOptions.datacenterId,
-        route,
-        headers,
-        timeout: connectionOptions.timeout,
-      }
-      const response = await execute(config)
-      const result = safeParseContactsImportSummary(response)
-      return result
+      const response = await execute({
+        connectionOptions,
+        request,
+        route: `/API/v3/directories/${segment(directoryId)}/mailinglists/${segment(
+          mailingListId
+        )}/transactioncontacts/${segment(importId)}/summary`,
+      })
+      return safeParseContactsImportSummary(response)
     } catch (error) {
-      const message = getErrorMessage(error)
-      return failure(message)
+      return toFailure('getContactsImportSummary', error)
     }
   }

@@ -1,11 +1,10 @@
 import type {
   ActionFactory,
-  Result,
   ContactsImportSummaryResponse,
-  StartContactsImportOptions,
-  ContactsImportStatusResponse,
+  ImportContactsOptions,
 } from '../../types'
-import { failure, getErrorMessage, isFailedStatus } from '../../utils'
+import { toFailure } from '../../errors'
+import { failure, isFailedStatus } from '../../utils'
 import { poll } from '../../utils/poll'
 import { startContactsImport } from './startContactsImport'
 import { getContactsImportStatus } from './getContactsImportStatus'
@@ -22,25 +21,24 @@ const POLL_MAX_ATTEMPTS = 300
  * @see https://api.qualtrics.com/1ac99fba8ca5b-contact-imports
  */
 export const importContacts: ActionFactory<
-  StartContactsImportOptions,
+  ImportContactsOptions,
   ContactsImportSummaryResponse
 > = (connectionOptions) => async (importOptions) => {
   try {
+    const { directoryId, mailingListId, bearerToken, timeout, signal } =
+      importOptions
+    const request = { bearerToken, timeout, signal }
+
     // Step 1
-    const startImportAction = startContactsImport(connectionOptions)
-    const startResponse = await startImportAction(importOptions)
-    if (!startResponse.success) return failure(startResponse.error)
+    const startResponse =
+      await startContactsImport(connectionOptions)(importOptions)
+    if (!startResponse.success) return startResponse
+    const importId = startResponse.data.id
 
     // Step 2
-    const importProgressAction = getContactsImportStatus(connectionOptions)
-    const progressResponse = await poll<Result<ContactsImportStatusResponse>>({
-      fn: () =>
-        importProgressAction({
-          directoryId: importOptions.directoryId,
-          importId: startResponse.data.id,
-          mailingListId: importOptions.mailingListId,
-          bearerToken: importOptions.bearerToken,
-        }),
+    const getStatus = getContactsImportStatus(connectionOptions)
+    const progressResponse = await poll({
+      fn: () => getStatus({ directoryId, importId, mailingListId, ...request }),
       validate: (res) =>
         !res.success ||
         res.data.percentComplete === 100 ||
@@ -48,31 +46,30 @@ export const importContacts: ActionFactory<
       intervalMs: POLL_INTERVAL_MS,
       maxAttempts: POLL_MAX_ATTEMPTS,
     })
-    if (!progressResponse.success) return failure(progressResponse.error)
+    if (!progressResponse.success) return progressResponse
     if (isFailedStatus(progressResponse.data.status))
       return failure(
-        `Contacts import failed with status '${progressResponse.data.status}'`
+        `Error in importContacts: import failed with status '${progressResponse.data.status}'`,
+        'HTTP'
       )
     if (progressResponse.data.percentComplete !== 100)
       return failure(
-        `Contacts import did not complete within ${
+        `Error in importContacts: import did not complete within ${
           (POLL_INTERVAL_MS * POLL_MAX_ATTEMPTS) / 1000
         } seconds (status '${progressResponse.data.status}', ${
           progressResponse.data.percentComplete
-        }% complete)`
+        }% complete)`,
+        'TIMEOUT'
       )
 
     // Step 3
-    const getContactImportSummaryAction =
-      getContactsImportSummary(connectionOptions)
-    return await getContactImportSummaryAction({
-      directoryId: importOptions.directoryId,
-      importId: startResponse.data.id,
-      mailingListId: importOptions.mailingListId,
-      bearerToken: importOptions.bearerToken,
+    return await getContactsImportSummary(connectionOptions)({
+      directoryId,
+      importId,
+      mailingListId,
+      ...request,
     })
   } catch (error) {
-    const message = getErrorMessage(error)
-    return failure(message)
+    return toFailure('importContacts', error)
   }
 }

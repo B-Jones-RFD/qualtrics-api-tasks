@@ -1,5 +1,5 @@
-import type { DistributionOptions, ActionFactory } from '../../types'
-import { success, failure, getErrorMessage } from '../../utils'
+import type { ActionFactory, DistributionOptions } from '../../types'
+import { toFailure } from '../../errors'
 import { createMailingList } from '../createMailingList'
 import { importContacts } from '../contacts/importContacts'
 import { createDistribution } from './createDistribution'
@@ -15,35 +15,40 @@ import { createReminder } from './createReminder'
 export const distributeSurveys: ActionFactory<DistributionOptions, string> =
   (connectionOptions) => async (options) => {
     try {
+      const request = {
+        bearerToken: options.bearerToken,
+        timeout: options.timeout,
+        signal: options.signal,
+      }
+
       // Step 1: Create Mailing List
-      const createMailingListAction = createMailingList(connectionOptions)
-      const startResponse = await createMailingListAction({
+      const mailingList = await createMailingList(connectionOptions)({
         directoryId: options.directoryId,
         name: options.mailingListName,
         ownerId: options.ownerId,
         prioritizeListMetadata: options.prioritizeListMetadata,
-        bearerToken: options.bearerToken,
+        ...request,
       })
-      if (!startResponse.success) return failure(startResponse.error)
+      if (!mailingList.success) return mailingList
+      const mailingListId = mailingList.data
 
       // Step 2: Import Contacts
-      const importContactsAction = importContacts(connectionOptions)
-      const importResponse = await importContactsAction({
+      const imported = await importContacts(connectionOptions)({
         directoryId: options.directoryId,
-        mailingListId: startResponse.data,
+        mailingListId,
         contacts: options.contacts,
         transactionMeta: options.transactionMeta,
-        bearerToken: options.bearerToken,
+        ...request,
       })
-      if (!importResponse.success) return failure(importResponse.error)
+      if (!imported.success) return imported
 
       // Step 3: Create Distribution
-      const createDistributionAction = createDistribution(connectionOptions)
-      const distributionResponse = await createDistributionAction({
+      const distribution = await createDistribution(connectionOptions)({
         libraryId: options.libraryId,
         messageId: options.distributionMessageId,
         messageText: options.distributionMessageText,
-        mailingListId: startResponse.data,
+        mailingListId,
+        transactionBatchId: options.transactionBatchId,
         fromEmail: options.fromEmail,
         fromName: options.fromName,
         replyToEmail: options.replyToEmail,
@@ -53,15 +58,13 @@ export const distributeSurveys: ActionFactory<DistributionOptions, string> =
         type: options.type,
         embeddedData: options.embeddedData,
         sendDate: options.distributionSendDate,
-        bearerToken: options.bearerToken,
+        ...request,
       })
-      if (!distributionResponse.success)
-        return failure(distributionResponse.error)
+      if (!distribution.success) return distribution
 
       // Step 4: Create Reminder
-      const createReminderAction = createReminder(connectionOptions)
-      const reminderResponse = await createReminderAction({
-        distributionId: distributionResponse.data,
+      return await createReminder(connectionOptions)({
+        distributionId: distribution.data,
         libraryId: options.libraryId,
         messageId: options.reminderMessageId,
         fromEmail: options.fromEmail,
@@ -70,12 +73,9 @@ export const distributeSurveys: ActionFactory<DistributionOptions, string> =
         subject: options.reminderSubject,
         embeddedData: options.embeddedData,
         sendDate: options.reminderSendDate,
-        bearerToken: options.bearerToken,
+        ...request,
       })
-      if (!reminderResponse.success) return failure(reminderResponse.error)
-      return success(reminderResponse.data)
     } catch (error) {
-      const message = getErrorMessage(error)
-      return failure(message)
+      return toFailure('distributeSurveys', error)
     }
   }

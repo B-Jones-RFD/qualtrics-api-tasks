@@ -1,8 +1,103 @@
+/**
+ * Public types for `@b-jones-rfd/qualtrics-api-tasks`.
+ *
+ * Every action resolves to a {@link Result} and never throws: check
+ * `result.success` to narrow to {@link Success} or {@link Failure}.
+ */
+
+/** Successful action result. The payload is in `data`. */
 export type Success<T> = { success: true; data: T }
 
-export type Failure = { success: false; error: string }
+/**
+ * Classification of a {@link Failure}. Branch on this rather than on the
+ * `error` text.
+ *
+ * - `HTTP`    — Qualtrics answered with a non-2xx status other than 401/403. See `status` and `details`.
+ * - `AUTH`    — 401 or 403: bad or expired token, or insufficient permissions.
+ * - `TIMEOUT` — the request did not complete within `timeout`.
+ * - `ABORTED` — the request was cancelled through `signal`.
+ * - `NETWORK` — DNS, connection or TLS failure before a response arrived.
+ * - `PARSE`   — Qualtrics answered 2xx but the body was not in the expected shape.
+ * - `UNKNOWN` — anything else.
+ */
+export type FailureCode =
+  'HTTP' | 'AUTH' | 'TIMEOUT' | 'ABORTED' | 'NETWORK' | 'PARSE' | 'UNKNOWN'
 
+/** The `meta.error` object Qualtrics returns in a failed response body, when present. */
+export type QualtricsError = {
+  /** Qualtrics error code, e.g. `'QEPL_1'`. */
+  errorCode?: string
+  /** Human-readable message from Qualtrics. */
+  errorMessage?: string
+  /** Request id reported by Qualtrics; quote it when contacting support. */
+  requestId?: string
+}
+
+/**
+ * Failed action result.
+ *
+ * `error` is a human-readable message prefixed with the action name, for
+ * logging. `code` classifies the failure; `status` and `details` are present
+ * for `HTTP`/`AUTH` failures when Qualtrics supplied them.
+ */
+export type Failure = {
+  success: false
+  error: string
+  code: FailureCode
+  /** HTTP status code, for `HTTP` and `AUTH` failures. */
+  status?: number
+  /** Parsed Qualtrics error body, when the response carried one. */
+  details?: QualtricsError
+  /**
+   * How long the server asked clients to wait before retrying, from a
+   * `Retry-After` header (429/503), in milliseconds.
+   */
+  retryAfterMs?: number
+}
+
+/**
+ * Discriminated union returned by every action.
+ *
+ * @example
+ * const res = await connection.testConnection()
+ * if (res.success) console.log(res.data)
+ * else console.error(res.code, res.error)
+ */
 export type Result<T> = Success<T> | Failure
+
+/** An asynchronous Qualtrics operation bound to a connection. */
+export type Action<TConfig, TResponse> = (
+  options: TConfig
+) => Promise<Result<TResponse>>
+
+/** Options that bind a connection to one Qualtrics datacenter. */
+export type ConnectionOptions = {
+  /** Datacenter id from the Qualtrics account settings, e.g. `'ca1'` or `'fra1'`. */
+  datacenterId: string
+  /** API token used when an action is not given a `bearerToken`. */
+  apiToken?: string
+  /** Default request timeout in milliseconds (30 000 when omitted). */
+  timeout?: number
+}
+
+/** Factory that binds an action to {@link ConnectionOptions}. */
+export type ActionFactory<TParams, TResponse> = (
+  options: ConnectionOptions
+) => Action<TParams, TResponse>
+
+/**
+ * Per-request options accepted by every action. They are spread out of the
+ * action's options object, so any action can be cancelled or given its own
+ * timeout or token.
+ */
+export type RequestOptions = {
+  /** OAuth bearer token for this call. Takes precedence over the connection's `apiToken`. */
+  bearerToken?: string
+  /** Timeout in milliseconds for this call; overrides the connection default. */
+  timeout?: number
+  /** Cancels the request. A cancelled request fails with code `ABORTED`. */
+  signal?: AbortSignal
+}
 
 export type ResponseFormat = 'csv' | 'json' | 'ndjson' | 'spss' | 'tsv' | 'xml'
 
@@ -15,6 +110,8 @@ export type DistributionRequestType =
   | 'PortalInvite'
   | 'GeneratedInvite'
 
+export type SurveyLinkType = 'Individual' | 'Multiple' | 'Anonymous'
+
 export type Contact = {
   firstName?: string
   lastName?: string
@@ -24,6 +121,11 @@ export type Contact = {
   language?: string
   unsubscribed?: boolean
   transactionData?: object
+}
+
+export type TransactionMeta = {
+  fields: string[]
+  batchId: string
 }
 
 export type Distribution = {
@@ -57,7 +159,7 @@ export type Distribution = {
   surveyLink: {
     surveyId: string
     expirationDate: string
-    linkType: 'Individual' | 'Multiple' | 'Anonymous'
+    linkType: SurveyLinkType
   }
   stats: {
     sent: number
@@ -73,134 +175,131 @@ export type Distribution = {
   embeddedData: Record<string, string>
 }
 
-export type Action<TConfig, TResponse> = (
-  options: TConfig
-) => Promise<Result<TResponse>>
-
-export type ConnectionOptions = {
-  datacenterId: string
-  apiToken?: string
-  timeout?: number
+export type LibraryMessage = {
+  id: string
+  description: string
+  category: string
 }
 
-export type ActionFactory<TParams, TResponse> = (
-  options: ConnectionOptions
-) => Action<TParams, TResponse>
-
-export type Connection = {
-  createDistribution: Action<CreateDistributionOptions, string>
-  createMailingList: Action<
-    {
-      directoryId: string
-      name: string
-      ownerId: string
-      prioritizeListMetadata?: boolean
-      bearerToken?: string
-    },
-    string
-  >
-  createReminder: Action<CreateReminderOptions, string>
-  distributeSurveys: Action<DistributionOptions, string>
-  exportResponses: Action<ExportResponsesOptions, Buffer>
-  getBearerToken: Action<
-    { clientId: string; clientSecret: string; scope: string },
-    string
-  >
-  getContactsImportStatus: Action<
-    {
-      directoryId: string
-      importId: string
-      mailingListId: string
-      bearerToken?: string
-    },
-    ContactsImportStatusResponse
-  >
-  getContactsImportSummary: Action<
-    {
-      directoryId: string
-      importId: string
-      mailingListId: string
-      bearerToken?: string
-    },
-    ContactsImportSummaryResponse
-  >
-  getDistribution: Action<
-    {
-      distributionId: string
-      surveyId: string
-      bearerToken?: string
-    },
-    Distribution
-  >
-  getResponseExportFile: Action<
-    { surveyId: string; fileId: string; bearerToken?: string },
-    Buffer
-  >
-  getResponseExportProgress: Action<
-    { exportProgressId: string; surveyId: string; bearerToken?: string },
-    FileProgressResponse
-  >
-  importContacts: Action<
-    StartContactsImportOptions,
-    ContactsImportSummaryResponse
-  >
-  listDistributions: Action<
-    {
-      sendStartDate: Date
-      sendEndDate: Date
-      surveyId: string
-      distributionRequestType?: DistributionRequestType
-      mailingListId?: string
-      skipToken?: string
-      useNewPaginationScheme?: boolean
-      pageSize?: number
-      bearerToken?: string
-    },
-    {
-      elements: Distribution[]
-      nextPage: string | null
-    }
-  >
-  listLibraryMessages: Action<
-    {
-      libraryId: string
-      category?: string
-      offset?: number
-      bearerToken?: string
-    },
-    {
-      elements: {
-        id: string
-        description: string
-        category: string
-      }[]
-      nextPage: string | null
-    }
-  >
-  startContactsImport: Action<
-    StartContactsImportOptions,
-    {
-      id: string
-      contacts: Array<Contact>
-      tracking: object
-      status: string
-    }
-  >
-  startResponseExport: Action<
-    ExportResponsesOptions,
-    {
-      progressId: string
-      percentComplete: number
-      status: string
-      continuationToken?: string
-    }
-  >
-  testConnection: (bearerToken?: string) => Promise<Result<string>>
+/** One page of a list endpoint. `nextPage` is a URL, or `null` on the last page. */
+export type PagedResponse<T> = {
+  elements: T[]
+  nextPage: string | null
 }
 
-export type ConnectionFactory = (options: ConnectionOptions) => Connection
+// ---------------------------------------------------------------------------
+// Action options
+// ---------------------------------------------------------------------------
 
-export type ExportResponsesOptions = {
+export type GetBearerTokenOptions = Omit<RequestOptions, 'bearerToken'> & {
+  clientId: string
+  clientSecret: string
+  scope: string
+}
+
+export type CreateMailingListOptions = RequestOptions & {
+  directoryId: string
+  name: string
+  ownerId: string
+  prioritizeListMetadata?: boolean
+}
+
+export type ListLibraryMessagesOptions = RequestOptions & {
+  libraryId: string
+  category?: string
+  offset?: number
+}
+
+export type GetContactsImportStatusOptions = RequestOptions & {
+  directoryId: string
+  importId: string
+  mailingListId: string
+}
+
+export type GetContactsImportSummaryOptions = GetContactsImportStatusOptions
+
+export type StartContactsImportOptions = RequestOptions & {
+  directoryId: string
+  mailingListId: string
+  contacts: Array<Contact>
+  transactionMeta?: TransactionMeta
+}
+
+export type ImportContactsOptions = StartContactsImportOptions
+
+export type GetDistributionOptions = RequestOptions & {
+  distributionId: string
+  surveyId: string
+}
+
+export type ListDistributionsOptions = RequestOptions & {
+  surveyId: string
+  sendStartDate: Date
+  sendEndDate: Date
+  distributionRequestType?: DistributionRequestType
+  mailingListId?: string
+  skipToken?: string
+  useNewPaginationScheme?: boolean
+  pageSize?: number
+}
+
+export type CreateDistributionOptions = RequestOptions & {
+  libraryId: string
+  messageId: string
+  messageText?: string
+  mailingListId: string
+  contactId?: string
+  transactionBatchId?: string
+  fromEmail: string
+  replyToEmail?: string
+  fromName: string
+  subject: string
+  surveyId: string
+  expirationDate: Date
+  type: SurveyLinkType
+  embeddedData?: Record<string, string>
+  sendDate: Date
+}
+
+export type CreateReminderOptions = RequestOptions & {
+  distributionId: string
+  libraryId: string
+  messageId: string
+  fromEmail: string
+  replyToEmail?: string
+  fromName: string
+  subject: string
+  sendDate: Date
+  embeddedData?: Record<string, string>
+}
+
+export type DistributionOptions = RequestOptions & {
+  directoryId: string
+  mailingListName: string
+  ownerId: string
+  prioritizeListMetadata?: boolean
+  contacts: Array<Contact>
+  transactionMeta?: TransactionMeta
+  libraryId: string
+  distributionMessageId: string
+  distributionMessageText?: string
+  reminderMessageId: string
+  reminderMessageText?: string
+  transactionBatchId?: string
+  fromEmail: string
+  replyToEmail?: string
+  fromName: string
+  distributionSubject: string
+  reminderSubject: string
+  surveyId: string
+  expirationDate: Date
+  type: SurveyLinkType
+  embeddedData?: Record<string, string>
+  distributionSendDate: Date
+  reminderSendDate: Date
+}
+
+export type ExportResponsesOptions = RequestOptions & {
   surveyId: string
   startDate: Date
   endDate: Date
@@ -224,39 +323,29 @@ export type ExportResponsesOptions = {
   allowContinuation?: boolean
   includeLabelColumns?: boolean
   sortByLastModifiedDate?: boolean
-  bearerToken?: string
 }
 
-export type CreateDistributionOptions = {
-  libraryId: string
-  messageId: string
-  messageText?: string
-  mailingListId: string
-  contactId?: string
-  transactionBatchId?: string
-  fromEmail: string
-  replyToEmail?: string
-  fromName: string
-  subject: string
+export type StartResponseExportOptions = ExportResponsesOptions
+
+export type GetResponseExportProgressOptions = RequestOptions & {
+  exportProgressId: string
   surveyId: string
-  expirationDate: Date
-  type: 'Individual' | 'Multiple' | 'Anonymous'
-  embeddedData?: Record<string, string>
-  sendDate: Date
-  bearerToken?: string
 }
 
-export type CreateReminderOptions = {
-  distributionId: string
-  libraryId: string
-  messageId: string
-  fromEmail: string
-  replyToEmail?: string
-  fromName: string
-  subject: string
-  sendDate: Date
-  embeddedData?: Record<string, string>
-  bearerToken?: string
+export type GetResponseExportFileOptions = RequestOptions & {
+  surveyId: string
+  fileId: string
+}
+
+// ---------------------------------------------------------------------------
+// Action responses
+// ---------------------------------------------------------------------------
+
+export type StartResponseExportResponse = {
+  progressId: string
+  percentComplete: number
+  status: string
+  continuationToken?: string
 }
 
 export type FileProgressResponse = {
@@ -266,15 +355,11 @@ export type FileProgressResponse = {
   continuationToken?: string
 }
 
-export type StartContactsImportOptions = {
-  directoryId: string
-  mailingListId: string
+export type StartContactsImportResponse = {
+  id: string
   contacts: Array<Contact>
-  transactionMeta?: {
-    fields: string[]
-    batchId: string
-  }
-  bearerToken?: string
+  tracking: object
+  status: string
 }
 
 export type ContactsImportSummaryResponse = {
@@ -312,32 +397,53 @@ export type ContactsImportStatusResponse = {
   status: string
 }
 
-export type DistributionOptions = {
-  directoryId: string
-  mailingListName: string
-  ownerId: string
-  prioritizeListMetadata?: boolean
-  contacts: Array<Contact>
-  transactionMeta?: {
-    fields: string[]
-    batchId: string
-  }
-  libraryId: string
-  distributionMessageId: string
-  distributionMessageText?: string
-  reminderMessageId: string
-  reminderMessageText?: string
-  transactionBatchId?: string
-  fromEmail: string
-  replyToEmail?: string
-  fromName: string
-  distributionSubject: string
-  reminderSubject: string
-  surveyId: string
-  expirationDate: Date
-  type: 'Individual' | 'Multiple' | 'Anonymous'
-  embeddedData?: Record<string, string>
-  distributionSendDate: Date
-  reminderSendDate: Date
-  bearerToken?: string
+// ---------------------------------------------------------------------------
+// Connection
+// ---------------------------------------------------------------------------
+
+export type Connection = {
+  createDistribution: Action<CreateDistributionOptions, string>
+  createMailingList: Action<CreateMailingListOptions, string>
+  createReminder: Action<CreateReminderOptions, string>
+  distributeSurveys: Action<DistributionOptions, string>
+  exportResponses: Action<ExportResponsesOptions, Buffer>
+  getBearerToken: Action<GetBearerTokenOptions, string>
+  getContactsImportStatus: Action<
+    GetContactsImportStatusOptions,
+    ContactsImportStatusResponse
+  >
+  getContactsImportSummary: Action<
+    GetContactsImportSummaryOptions,
+    ContactsImportSummaryResponse
+  >
+  getDistribution: Action<GetDistributionOptions, Distribution>
+  getResponseExportFile: Action<GetResponseExportFileOptions, Buffer>
+  getResponseExportProgress: Action<
+    GetResponseExportProgressOptions,
+    FileProgressResponse
+  >
+  importContacts: Action<ImportContactsOptions, ContactsImportSummaryResponse>
+  listDistributions: Action<
+    ListDistributionsOptions,
+    PagedResponse<Distribution>
+  >
+  listLibraryMessages: Action<
+    ListLibraryMessagesOptions,
+    PagedResponse<LibraryMessage>
+  >
+  startContactsImport: Action<
+    StartContactsImportOptions,
+    StartContactsImportResponse
+  >
+  startResponseExport: Action<
+    StartResponseExportOptions,
+    StartResponseExportResponse
+  >
+  /**
+   * Calls `/whoami`. Accepts {@link RequestOptions}; passing a bare bearer
+   * token string is deprecated and will be removed in 1.0.
+   */
+  testConnection: (options?: RequestOptions | string) => Promise<Result<string>>
 }
+
+export type ConnectionFactory = (options: ConnectionOptions) => Connection

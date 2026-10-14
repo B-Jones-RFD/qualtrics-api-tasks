@@ -62,9 +62,7 @@ describe('safeParseFileProgressResponse', () => {
         errorMessage: 'Some error',
       },
     }
-    const expected = failure(
-      `${res.error.errorCode}: ${res.error.errorMessage}`
-    )
+    const expected = failure('Unable to parse File Progress Response')
     const parsed = safeParseFileProgressResponse(res)
     expect(parsed).toStrictEqual(expected)
   })
@@ -105,9 +103,7 @@ describe('safeParseStartFileExportResponse', () => {
         errorMessage: 'Some error',
       },
     }
-    const expected = failure(
-      `${res.error.errorCode}: ${res.error.errorMessage}`
-    )
+    const expected = failure('Unable to parse Start Export Response')
     const parsed = safeParseStartFileExportResponse(res)
     expect(parsed).toStrictEqual(expected)
   })
@@ -209,7 +205,7 @@ describe('safeParseStartContactsImportResponse', () => {
         status: 'Progress',
       },
     }
-    const expected = failure('Start contacts import response invalid format')
+    const expected = failure('Start Contacts Import Response invalid format')
     const parsed = safeParseStartContactsImportResponse(res)
     expect(parsed).toStrictEqual(expected)
   })
@@ -262,7 +258,7 @@ describe('safeParseContactImportSummary', () => {
         status: 'inProgress',
       },
     }
-    const expected = failure('Contacts import summary response invalid format')
+    const expected = failure('Contacts Import Summary Response invalid format')
     const parsed = safeParseContactsImportSummary(res)
     expect(parsed).toStrictEqual(expected)
   })
@@ -302,7 +298,7 @@ describe('safeParseContactImportStatus', () => {
         errorMessage: 'Some error',
       },
     }
-    const expected = failure(`Unable to parse Contacts Import Summary Response`)
+    const expected = failure(`Unable to parse Contacts Import Status Response`)
     const parsed = safeParseContactsImportStatus(res)
     expect(parsed).toStrictEqual(expected)
   })
@@ -314,7 +310,7 @@ describe('safeParseContactImportStatus', () => {
         status: 'inProgress',
       },
     }
-    const expected = failure('Contacts import summary response invalid format')
+    const expected = failure('Contacts Import Status Response invalid format')
     const parsed = safeParseContactsImportStatus(res)
     expect(parsed).toStrictEqual(expected)
   })
@@ -401,7 +397,7 @@ describe('safeParseListLibraryMessages', () => {
 
   it('should pass with correct data', () => {
     const res = fixture
-    const expected = success(fixture.result)
+    const expected = success({ elements: [], nextPage: null })
     const parsed = safeParseListLibraryMessages(res)
     expect(parsed).toStrictEqual(expected)
   })
@@ -474,7 +470,7 @@ describe('safeParseListDistributions', () => {
 
   it('should pass with correct data', () => {
     const res = fixture
-    const expected = success(fixture.result)
+    const expected = success({ elements: [], nextPage: null })
     const parsed = safeParseListDistributions(res)
     expect(parsed).toStrictEqual(expected)
   })
@@ -483,7 +479,7 @@ describe('safeParseListDistributions', () => {
     const res = {
       meta: 'bad result',
     }
-    const expected = failure(`Unable to parse List Distribution response`)
+    const expected = failure(`Unable to parse List Distributions response`)
     const parsed = safeParseListDistributions(res)
     expect(parsed).toStrictEqual(expected)
   })

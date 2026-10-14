@@ -1,9 +1,10 @@
 import type {
   ActionFactory,
-  DistributionRequestType,
   Distribution,
+  ListDistributionsOptions,
+  PagedResponse,
 } from '../../types'
-import { failure, getErrorMessage, getAuthHeaders } from '../../utils'
+import { toFailure } from '../../errors'
 import { safeParseListDistributions } from '../../utils/parsers'
 import { execute } from '../../qualtrics'
 
@@ -14,21 +15,8 @@ import { execute } from '../../qualtrics'
  * @see https://api.qualtrics.com/234bb6b16cf6d-list-distributions
  */
 export const listDistributions: ActionFactory<
-  {
-    surveyId: string
-    sendStartDate: Date
-    sendEndDate: Date
-    distributionRequestType?: DistributionRequestType
-    mailingListId?: string
-    skipToken?: string
-    useNewPaginationScheme?: boolean
-    pageSize?: number
-    bearerToken?: string
-  },
-  {
-    elements: Distribution[]
-    nextPage: string | null
-  }
+  ListDistributionsOptions,
+  PagedResponse<Distribution>
 > =
   (connectionOptions) =>
   async ({
@@ -40,10 +28,9 @@ export const listDistributions: ActionFactory<
     skipToken,
     useNewPaginationScheme,
     pageSize,
-    bearerToken = undefined,
+    ...request
   }) => {
     try {
-      const headers = getAuthHeaders(connectionOptions.apiToken, bearerToken)
       const qs = new URLSearchParams({
         surveyId,
         sendStartDate: sendStartDate.toISOString(),
@@ -57,19 +44,13 @@ export const listDistributions: ActionFactory<
         qs.append('useNewPaginationScheme', useNewPaginationScheme.toString())
       if (pageSize) qs.append('pageSize', pageSize.toString())
 
-      const route = `/API/v3/distributions?${qs.toString()}`
-
-      const config = {
-        datacenterId: connectionOptions.datacenterId,
-        route,
-        headers,
-        timeout: connectionOptions.timeout,
-      }
-      const response = await execute(config)
-      const result = safeParseListDistributions(response)
-      return result
+      const response = await execute({
+        connectionOptions,
+        request,
+        route: `/API/v3/distributions?${qs.toString()}`,
+      })
+      return safeParseListDistributions(response)
     } catch (error) {
-      const message = getErrorMessage(error)
-      return failure(message)
+      return toFailure('listDistributions', error)
     }
   }

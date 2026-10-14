@@ -171,6 +171,16 @@ export type Action<TConfig, TResponse> = (
 
 If using the actions directly call the factory method with a ConnectionOptions object to return an action that can be used to execute a Qualtrics action.
 
+Every action also accepts the per-request options below, in addition to the parameters listed for it:
+
+```ts
+type RequestOptions = {
+  bearerToken?: string // takes precedence over the connection's apiToken
+  timeout?: number // milliseconds; overrides the connection default
+  signal?: AbortSignal // cancel the request; fails with code 'ABORTED'
+}
+```
+
 #### Authentication
 
 ##### getBearerToken(options)
@@ -488,11 +498,9 @@ Implements [Start Response Exports](https://api.qualtrics.com/6b00592b9c013-star
 
 #### Utilities
 
-##### testConnection(bearerToken)
+##### testConnection(options)
 
-| Parameter   | Type   | Description        | Required |
-| ----------- | ------ | ------------------ | -------- |
-| bearerToken | string | Valid Bearer Token | N        |
+Calls `/API/v3/whoami`. Takes `RequestOptions` only. Passing a bare bearer token string still works but is deprecated and will be removed in 1.0.
 
 ## Responses
 
@@ -512,11 +520,39 @@ type Success<TResponse> = { success: true; data: TResponse }
 
 ### Failure
 
-Errors are returned in the error property.
+Actions never throw. A failure carries a human-readable `error` (prefixed with the action name, for logs) and a `code` to branch on. `status` and `details` are present when Qualtrics answered with an error body; `retryAfterMs` is parsed from a `Retry-After` header on 429/503 responses.
 
 ```ts
-type Failure = { success: false; error: string }
+type Failure = {
+  success: false
+  error: string
+  code: FailureCode
+  status?: number
+  details?: { errorCode?: string; errorMessage?: string; requestId?: string }
+  retryAfterMs?: number
+}
+
+type FailureCode =
+  | 'HTTP' // non-2xx other than 401/403
+  | 'AUTH' // 401 or 403
+  | 'TIMEOUT' // request did not complete within `timeout`
+  | 'ABORTED' // cancelled through `signal`
+  | 'NETWORK' // DNS, connection or TLS failure
+  | 'PARSE' // 2xx but the body was not in the expected shape
+  | 'UNKNOWN'
 ```
+
+```ts
+const res = await connection.exportResponses(options)
+if (!res.success) {
+  if (res.code === 'AUTH') await refreshToken()
+  else if (res.code === 'HTTP' && res.status === 429)
+    await wait(res.retryAfterMs)
+  else console.error(res.error, res.details?.requestId)
+}
+```
+
+`createConnection` is the one function that throws: it raises a `TypeError` for malformed `ConnectionOptions` before any request is made.
 
 ## Contributing
 

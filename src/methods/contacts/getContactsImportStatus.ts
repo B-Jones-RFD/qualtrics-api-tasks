@@ -1,40 +1,36 @@
-import type { ActionFactory, ContactsImportStatusResponse } from '../../types'
-import { failure, getErrorMessage, getAuthHeaders } from '../../utils'
+import type {
+  ActionFactory,
+  ContactsImportStatusResponse,
+  GetContactsImportStatusOptions,
+} from '../../types'
+import { toFailure } from '../../errors'
+import { segment } from '../../utils'
 import { safeParseContactsImportStatus } from '../../utils/parsers'
 import { execute } from '../../qualtrics'
 
 /**
- *  Get Contacts Import Status
+ * Get Contacts Import Status
  *
- * Implements Get Transaction Contacts Import Status
- * @see https://api.qualtrics.com/c5d22705b1d45-get-transaction-contacts-import-status
+ * Implements Get Transaction Contacts Import Status. This is step 2 in the
+ * contacts import process.
+ * @see https://api.qualtrics.com/1ac99fba8ca5b-contact-imports
  */
 export const getContactsImportStatus: ActionFactory<
-  {
-    directoryId: string
-    importId: string
-    mailingListId: string
-    bearerToken?: string
-  },
+  GetContactsImportStatusOptions,
   ContactsImportStatusResponse
 > =
   (connectionOptions) =>
-  async ({ directoryId, importId, mailingListId, bearerToken = undefined }) => {
-    const route = `/API/v3
-/directories/${directoryId}/mailinglists/${mailingListId}/transactioncontacts/${importId}`
+  async ({ directoryId, importId, mailingListId, ...request }) => {
     try {
-      const headers = getAuthHeaders(connectionOptions.apiToken, bearerToken)
-      const config = {
-        datacenterId: connectionOptions.datacenterId,
-        route,
-        headers,
-        timeout: connectionOptions.timeout,
-      }
-      const response = await execute(config)
-      const result = safeParseContactsImportStatus(response)
-      return result
+      const response = await execute({
+        connectionOptions,
+        request,
+        route: `/API/v3/directories/${segment(directoryId)}/mailinglists/${segment(
+          mailingListId
+        )}/transactioncontacts/${segment(importId)}`,
+      })
+      return safeParseContactsImportStatus(response)
     } catch (error) {
-      const message = getErrorMessage(error)
-      return failure(message)
+      return toFailure('getContactsImportStatus', error)
     }
   }

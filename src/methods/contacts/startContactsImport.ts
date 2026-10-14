@@ -1,49 +1,43 @@
 import type {
   ActionFactory,
-  Contact,
   StartContactsImportOptions,
+  StartContactsImportResponse,
 } from '../../types'
-import { failure, getErrorMessage, getAuthHeaders } from '../../utils'
+import { toFailure } from '../../errors'
+import { segment } from '../../utils'
 import { safeParseStartContactsImportResponse } from '../../utils/parsers'
 import { execute } from '../../qualtrics'
 
 /**
- *  Start Contacts Import
+ * Start Contacts Import
  *
- * Implements Create Transaction Contacts Import
- * @see https://api.qualtrics.com/bab13356ac724-create-transaction-contacts-import
+ * Implements Create Transaction Contacts Import. This is step 1 in the
+ * contacts import process.
+ * @see https://api.qualtrics.com/1ac99fba8ca5b-contact-imports
  */
 export const startContactsImport: ActionFactory<
   StartContactsImportOptions,
-  {
-    id: string
-    contacts: Array<Contact>
-    tracking: object
-    status: string
-  }
-> = (connectionOptions) => async (options) => {
-  const { directoryId, mailingListId, contacts, transactionMeta, bearerToken } =
-    options
-  const route = `/API/v3
-/directories/${directoryId}/mailinglists/${mailingListId}/transactioncontacts`
-  try {
-    const headers = getAuthHeaders(connectionOptions.apiToken, bearerToken)
-    const body = JSON.stringify({
-      transactionMeta,
-      contacts,
-    })
-    const config = {
-      datacenterId: connectionOptions.datacenterId,
-      route,
-      headers,
-      body,
-      timeout: connectionOptions.timeout,
+  StartContactsImportResponse
+> =
+  (connectionOptions) =>
+  async ({
+    directoryId,
+    mailingListId,
+    contacts,
+    transactionMeta,
+    ...request
+  }) => {
+    try {
+      const response = await execute({
+        connectionOptions,
+        request,
+        route: `/API/v3/directories/${segment(directoryId)}/mailinglists/${segment(
+          mailingListId
+        )}/transactioncontacts`,
+        body: JSON.stringify({ transactionMeta, contacts }),
+      })
+      return safeParseStartContactsImportResponse(response)
+    } catch (error) {
+      return toFailure('startContactsImport', error)
     }
-    const response = await execute(config)
-    const result = safeParseStartContactsImportResponse(response)
-    return result
-  } catch (error) {
-    const message = getErrorMessage(error)
-    return failure(message)
   }
-}

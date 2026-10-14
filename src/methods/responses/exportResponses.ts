@@ -1,10 +1,6 @@
-import type {
-  ActionFactory,
-  ExportResponsesOptions,
-  FileProgressResponse,
-  Result,
-} from '../../types'
-import { failure, getErrorMessage, isFailedStatus } from '../../utils'
+import type { ActionFactory, ExportResponsesOptions } from '../../types'
+import { toFailure } from '../../errors'
+import { failure, isFailedStatus } from '../../utils'
 import { poll } from '../../utils/poll'
 import { startResponseExport } from './startResponseExport'
 import { getResponseExportFile } from './getResponseExportFile'
@@ -24,20 +20,19 @@ const POLL_MAX_ATTEMPTS = 300
 export const exportResponses: ActionFactory<ExportResponsesOptions, Buffer> =
   (connectionOptions) => async (responseOptions) => {
     try {
+      const { surveyId, bearerToken, timeout, signal } = responseOptions
+      const request = { bearerToken, timeout, signal }
+
       // Step 1
-      const startResponseAction = startResponseExport(connectionOptions)
-      const startResponse = await startResponseAction(responseOptions)
-      if (!startResponse.success) return failure(startResponse.error)
+      const startResponse =
+        await startResponseExport(connectionOptions)(responseOptions)
+      if (!startResponse.success) return startResponse
+      const exportProgressId = startResponse.data.progressId
 
       // Step 2
-      const exportProgressAction = getResponseExportProgress(connectionOptions)
-      const progressResponse = await poll<Result<FileProgressResponse>>({
-        fn: () =>
-          exportProgressAction({
-            exportProgressId: startResponse.data.progressId,
-            surveyId: responseOptions.surveyId,
-            bearerToken: responseOptions.bearerToken,
-          }),
+      const getProgress = getResponseExportProgress(connectionOptions)
+      const progressResponse = await poll({
+        fn: () => getProgress({ exportProgressId, surveyId, ...request }),
         validate: (res) =>
           !res.success ||
           res.data.percentComplete === 100 ||
@@ -45,29 +40,29 @@ export const exportResponses: ActionFactory<ExportResponsesOptions, Buffer> =
         intervalMs: POLL_INTERVAL_MS,
         maxAttempts: POLL_MAX_ATTEMPTS,
       })
-      if (!progressResponse.success) return failure(progressResponse.error)
+      if (!progressResponse.success) return progressResponse
       if (isFailedStatus(progressResponse.data.status))
         return failure(
-          `Response export failed with status '${progressResponse.data.status}'`
+          `Error in exportResponses: export failed with status '${progressResponse.data.status}'`,
+          'HTTP'
         )
       if (progressResponse.data.percentComplete !== 100)
         return failure(
-          `Response export did not complete within ${
+          `Error in exportResponses: export did not complete within ${
             (POLL_INTERVAL_MS * POLL_MAX_ATTEMPTS) / 1000
           } seconds (status '${progressResponse.data.status}', ${
             progressResponse.data.percentComplete
-          }% complete)`
+          }% complete)`,
+          'TIMEOUT'
         )
 
       // Step 3
-      const getFileResponseAction = getResponseExportFile(connectionOptions)
-      return await getFileResponseAction({
-        surveyId: responseOptions.surveyId,
+      return await getResponseExportFile(connectionOptions)({
+        surveyId,
         fileId: progressResponse.data.fileId,
-        bearerToken: responseOptions.bearerToken,
+        ...request,
       })
     } catch (error) {
-      const message = getErrorMessage(error)
-      return failure(message)
+      return toFailure('exportResponses', error)
     }
   }

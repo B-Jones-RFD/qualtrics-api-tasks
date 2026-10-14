@@ -1,159 +1,177 @@
 import type {
-  Contact,
   ContactsImportStatusResponse,
   ContactsImportSummaryResponse,
-  FileProgressResponse,
   Distribution,
+  FileProgressResponse,
+  LibraryMessage,
+  PagedResponse,
   Result,
+  StartContactsImportResponse,
+  StartResponseExportResponse,
 } from '../types'
 import { success, failure } from './index'
 
-export function safeParseBearerToken(response: any): Result<string> {
-  return response?.access_token && typeof response.access_token === 'string'
+type Rec = Record<string, unknown>
+
+function isRecord(value: unknown): value is Rec {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/** Returns `response.result` when the body has the standard Qualtrics envelope. */
+function resultOf(response: unknown): Rec | undefined {
+  if (!isRecord(response)) return undefined
+  return isRecord(response.result) ? response.result : undefined
+}
+
+function hasAll(record: Rec, keys: string[]): boolean {
+  return keys.every((key) => key in record)
+}
+
+/**
+ * Generic envelope parser: fails with `Unable to parse <what>` when the
+ * envelope is missing and `<what> invalid format` when `keys` are absent.
+ */
+function parseEnvelope<T>(
+  response: unknown,
+  what: string,
+  keys: string[]
+): Result<T> {
+  const result = resultOf(response)
+  if (!result) return failure(`Unable to parse ${what}`)
+  return hasAll(result, keys)
+    ? success(result as T)
+    : failure(`${what} invalid format`)
+}
+
+export function safeParseBearerToken(response: unknown): Result<string> {
+  return isRecord(response) && typeof response.access_token === 'string'
     ? success(response.access_token)
     : failure('Incorrect token format')
 }
 
-export function safeParseTestResponse(response: any): Result<string> {
-  return response?.result?.userId
+export function safeParseTestResponse(response: unknown): Result<string> {
+  const result = resultOf(response)
+  return result?.userId
     ? success('Connection successful')
     : failure('Incorrect test response format')
 }
 
-export function safeParseStartFileExportResponse(response: any): Result<{
-  progressId: string
-  percentComplete: number
-  status: string
-  continuationToken?: string
-}> {
-  return 'result' in response
-    ? 'progressId' in response.result &&
-      'percentComplete' in response.result &&
-      'status' in response.result
-      ? success(response.result)
-      : failure('Start Export Response invalid format')
-    : 'error' in response
-      ? failure(`${response.error.errorCode}: ${response.error.errorMessage}`)
-      : failure(`Unable to parse Start Export Response`)
+export function safeParseStartFileExportResponse(
+  response: unknown
+): Result<StartResponseExportResponse> {
+  return parseEnvelope(response, 'Start Export Response', [
+    'progressId',
+    'percentComplete',
+    'status',
+  ])
 }
 
 export function safeParseFileProgressResponse(
-  response: any
+  response: unknown
 ): Result<FileProgressResponse> {
-  return 'result' in response
-    ? 'fileId' in response.result &&
-      'percentComplete' in response.result &&
-      'status' in response.result
-      ? success(response.result)
-      : failure('File Progress Response invalid format')
-    : 'error' in response
-      ? failure(`${response.error.errorCode}: ${response.error.errorMessage}`)
-      : failure(`Unable to parse File Progress Response`)
+  return parseEnvelope(response, 'File Progress Response', [
+    'fileId',
+    'percentComplete',
+    'status',
+  ])
 }
 
 export function safeParseCreateMailingListResponse(
-  response: any
+  response: unknown
 ): Result<string> {
-  return 'result' in response
-    ? 'id' in response.result
-      ? success(response.result.id)
-      : failure(`Id missing in Create Mailing List Response`)
-    : failure(`Unable to parse Create Mailing List Response`)
+  const result = resultOf(response)
+  if (!result) return failure('Unable to parse Create Mailing List Response')
+  return typeof result.id === 'string'
+    ? success(result.id)
+    : failure('Id missing in Create Mailing List Response')
 }
 
-export function safeParseStartContactsImportResponse(response: any): Result<{
-  id: string
-  contacts: Array<Contact>
-  tracking: object
-  status: string
-}> {
-  return 'result' in response
-    ? 'id' in response.result &&
-      'contacts' in response.result &&
-      'tracking' in response.result &&
-      'status' in response.result
-      ? success(response.result)
-      : failure('Start contacts import response invalid format')
-    : failure(`Unable to parse Start Contacts Import Response`)
+export function safeParseStartContactsImportResponse(
+  response: unknown
+): Result<StartContactsImportResponse> {
+  return parseEnvelope(response, 'Start Contacts Import Response', [
+    'id',
+    'contacts',
+    'tracking',
+    'status',
+  ])
 }
 
 export function safeParseContactsImportSummary(
-  response: any
+  response: unknown
 ): Result<ContactsImportSummaryResponse> {
-  return 'result' in response
-    ? 'percentComplete' in response.result &&
-      'contacts' in response.result &&
-      'invalidEmails' in response.result &&
-      'transactions' in response.result &&
-      'status' in response.result
-      ? success(response.result)
-      : failure('Contacts import summary response invalid format')
-    : failure(`Unable to parse Contacts Import Summary Response`)
+  return parseEnvelope(response, 'Contacts Import Summary Response', [
+    'percentComplete',
+    'contacts',
+    'invalidEmails',
+    'transactions',
+    'status',
+  ])
 }
 
 export function safeParseContactsImportStatus(
-  response: any
+  response: unknown
 ): Result<ContactsImportStatusResponse> {
-  return 'result' in response
-    ? 'percentComplete' in response.result &&
-      'contacts' in response.result &&
-      'transactions' in response.result &&
-      'status' in response.result
-      ? success(response.result)
-      : failure('Contacts import summary response invalid format')
-    : failure(`Unable to parse Contacts Import Summary Response`)
+  return parseEnvelope(response, 'Contacts Import Status Response', [
+    'percentComplete',
+    'contacts',
+    'transactions',
+    'status',
+  ])
 }
 
 export function safeParseCreateDistributionResponse(
-  response: any
+  response: unknown
 ): Result<string> {
-  return 'result' in response
-    ? 'id' in response.result
-      ? success(response.result.id)
-      : failure(`Id missing in Create Distribution Response`)
-    : failure(`Unable to parse Create Distribution Response`)
+  const result = resultOf(response)
+  if (!result) return failure('Unable to parse Create Distribution Response')
+  return typeof result.id === 'string'
+    ? success(result.id)
+    : failure('Id missing in Create Distribution Response')
 }
 
-export function safeParseCreateReminderResponse(response: any): Result<string> {
-  return 'result' in response
-    ? 'distributionId' in response.result
-      ? success(response.result.distributionId)
-      : failure(`distributionId missing in Create Reminder Response`)
-    : failure(`Unable to parse Create Reminder Response`)
+export function safeParseCreateReminderResponse(
+  response: unknown
+): Result<string> {
+  const result = resultOf(response)
+  if (!result) return failure('Unable to parse Create Reminder Response')
+  return typeof result.distributionId === 'string'
+    ? success(result.distributionId)
+    : failure('distributionId missing in Create Reminder Response')
 }
 
-export function safeParseListLibraryMessages(response: any): Result<{
-  elements: {
-    id: string
-    description: string
-    category: string
-  }[]
-  nextPage: string | null
-}> {
-  return 'result' in response
-    ? 'elements' in response.result && Array.isArray(response.result.elements)
-      ? success(response.result)
-      : failure(`elements missing in List Library Messages response`)
-    : failure(`Unable to parse List Library Messages response`)
+function parsePage<T>(
+  response: unknown,
+  what: string
+): Result<PagedResponse<T>> {
+  const result = resultOf(response)
+  if (!result) return failure(`Unable to parse ${what}`)
+  if (!Array.isArray(result.elements))
+    return failure(`elements missing in ${what}`)
+  const nextPage = typeof result.nextPage === 'string' ? result.nextPage : null
+  return success({ elements: result.elements as T[], nextPage })
 }
 
-export function safeParseGetDistribution(response: any): Result<Distribution> {
-  return 'result' in response
-    ? 'id' in response.result && 'stats' in response.result
-      ? success(response.result)
-      : failure(`Properties missing in Get Distribution response`)
-    : failure(`Unable to parse Get Distribution response`)
+export function safeParseListLibraryMessages(
+  response: unknown
+): Result<PagedResponse<LibraryMessage>> {
+  return parsePage(response, 'List Library Messages response')
 }
 
-export function safeParseListDistributions(response: any): Result<{
-  elements: Distribution[]
-  nextPage: string | null
-}> {
-  return 'result' in response
-    ? 'elements' in response.result
-      ? success(response.result)
-      : failure(`elements missing in List Distributions response`)
-    : failure(`Unable to parse List Distribution response`)
+export function safeParseGetDistribution(
+  response: unknown
+): Result<Distribution> {
+  const result = resultOf(response)
+  if (!result) return failure('Unable to parse Get Distribution response')
+  return hasAll(result, ['id', 'stats'])
+    ? success(result as unknown as Distribution)
+    : failure('Properties missing in Get Distribution response')
+}
+
+export function safeParseListDistributions(
+  response: unknown
+): Result<PagedResponse<Distribution>> {
+  return parsePage(response, 'List Distributions response')
 }
 
 /** Accepts a downloaded file body as a `Buffer` (text bodies are encoded as UTF-8). */
