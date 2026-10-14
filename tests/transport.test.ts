@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { execute } from '../src/qualtrics'
 import { QualtricsApiError } from '../src/errors'
-import { getAuthHeaders, isFailedStatus, segment } from '../src/utils'
+import { isFailedStatus, segment } from '../src/utils'
 import { safeParseFile } from '../src/utils/parsers'
 
 const connectionOptions = { datacenterId: 'ca1', apiToken: 'api' }
@@ -196,20 +196,6 @@ describe('execute', () => {
     )
     expect(err.name).toBe('AbortError')
     expect(fetchMock).not.toHaveBeenCalled()
-  })
-})
-
-describe('getAuthHeaders', () => {
-  it('prefers a per-call bearer token over the connection api token', () => {
-    const h = getAuthHeaders('api', 'bearer')
-    expect(h.get('authorization')).toBe('Bearer bearer')
-    expect(h.get('x-api-token')).toBeNull()
-  })
-  it('uses the api token when no bearer token is given', () => {
-    expect(getAuthHeaders('api', undefined).get('x-api-token')).toBe('api')
-  })
-  it('throws when neither is given', () => {
-    expect(() => getAuthHeaders(undefined, undefined)).toThrow()
   })
 })
 

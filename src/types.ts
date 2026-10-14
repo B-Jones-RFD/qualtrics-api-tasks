@@ -359,9 +359,6 @@ export type GetContactsImportStatusOptions = RequestOptions & {
   mailingListId: string
 }
 
-/** @deprecated The summary endpoint is deprecated by Qualtrics; use {@link GetContactsImportStatusOptions}. */
-export type GetContactsImportSummaryOptions = GetContactsImportStatusOptions
-
 export type StartContactsImportOptions = RequestOptions & {
   directoryId: string
   mailingListId: string
@@ -589,12 +586,35 @@ export type ContactsImportStatusResponse = {
   status: string
 }
 
-/**
- * Final report of a contacts import. Returned by `importContacts` and by
- * the deprecated `getContactsImportSummary`.
- */
+/** Final report of a contacts import, as returned by `importContacts`. */
 export type ContactsImportSummaryResponse = ContactsImportStatusResponse & {
   invalidEmails: string[]
+}
+
+/** Identity of the caller, as returned by `testConnection` (`/whoami`). */
+export type WhoAmI = {
+  /** `'UR_…'`. */
+  userId: string
+  brandId?: string
+  userName?: string
+  /** `'UT_…'`. */
+  accountType?: string
+  firstName?: string
+  lastName?: string
+  email?: string
+  datacenter?: string
+}
+
+/** Everything `distributeSurveys` created. */
+export type DistributionResult = {
+  /** The mailing list created in step 1. */
+  mailingListId: string
+  /** Final status of the contacts import (step 2). */
+  import: ContactsImportSummaryResponse
+  /** The distribution created in step 3. */
+  distributionId: string
+  /** The reminder distribution scheduled in step 4. */
+  reminderId: string
 }
 
 /** Result of `exportResponsesWithProgress`: the decoded export and the completed progress record. */
@@ -627,11 +647,11 @@ export type Connection = {
   getBearerToken: Action<GetBearerTokenOptions, string>
 
   /**
-   * Calls `/API/v3/whoami` to verify the credentials. Resolves to
-   * `'Connection successful'`.
-   * @see https://api.qualtrics.com/2482a48f62473-users
+   * Calls `/API/v3/whoami` to verify the credentials and resolves to the
+   * caller's identity ({@link WhoAmI}).
+   * @see https://api.qualtrics.com/dc58b844b8a14-who-am-i
    */
-  testConnection: (options?: RequestOptions) => Promise<Result<string>>
+  testConnection: (options?: RequestOptions) => Promise<Result<WhoAmI>>
 
   // --- Contacts -----------------------------------------------------------
 
@@ -656,24 +676,13 @@ export type Connection = {
   >
 
   /**
-   * Step 2 of a contacts import: reports `percentComplete` and `status`.
+   * Step 2 of a contacts import: reports `percentComplete`, `status`, the
+   * added/updated/failed counts and invalid emails.
    * @see https://api.qualtrics.com/c5d22705b1d45-get-transaction-contacts-import-status
    */
   getContactsImportStatus: Action<
     GetContactsImportStatusOptions,
     ContactsImportStatusResponse
-  >
-
-  /**
-   * Counts of added/updated/failed contacts and invalid emails.
-   * @deprecated Qualtrics deprecated this endpoint (unsupported after
-   * 2026-06-30). {@link Connection.getContactsImportStatus} reports the same
-   * fields; removed in 2.0.
-   * @see https://api.qualtrics.com/6f0480b307053-get-transaction-contacts-import-summary
-   */
-  getContactsImportSummary: Action<
-    GetContactsImportSummaryOptions,
-    ContactsImportSummaryResponse
   >
 
   // --- Mailing lists and messages ----------------------------------------
@@ -718,11 +727,10 @@ export type Connection = {
   /**
    * Distributes a survey end to end: creates a mailing list, imports the
    * contacts, creates the distribution and schedules a reminder. Resolves to
-   * the reminder's distribution id. Each step's failure is returned as-is.
-   * (The mailing list and distribution ids are not returned; run the steps
-   * individually when you need them.)
+   * every id created and the import's final status. Each step's failure is
+   * returned as-is.
    */
-  distributeSurveys: Action<DistributionOptions, string>
+  distributeSurveys: Action<DistributionOptions, DistributionResult>
 
   /**
    * Creates a distribution and returns its id.
@@ -797,9 +805,6 @@ export type Connection = {
     ExportResponsesOptions,
     ResponseExportResult
   >
-
-  /** @deprecated Alias of {@link Connection.exportResponses}; removed in 2.0. */
-  exportResponseData: Action<ExportResponsesOptions, ResponseExportData>
 
   /**
    * Step 1 of a response export: starts it and returns the `progressId`.

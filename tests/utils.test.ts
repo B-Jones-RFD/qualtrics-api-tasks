@@ -1,13 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { success, failure } from '../src/utils'
 import {
-  safeParseBearerToken,
-  safeParseTestResponse,
+  safeParseWhoAmI,
   safeParseStartFileExportResponse,
   safeParseFileProgressResponse,
   safeParseCreateMailingListResponse,
   safeParseStartContactsImportResponse,
-  safeParseContactsImportSummary,
   safeParseContactsImportStatus,
   safeParseCreateDistributionResponse,
   safeParseCreateReminderResponse,
@@ -15,29 +13,6 @@ import {
   safeParseListDistributions,
   safeParseGetDistribution,
 } from '../src/utils/parsers'
-
-describe('safeParseBearerToken', () => {
-  const fixture = {
-    access_token: 'sometoken',
-    token_type: 'Bearer',
-  }
-
-  it('should pass with correct data', () => {
-    const res = fixture
-    const expected = success(fixture.access_token)
-    const parsed = safeParseBearerToken(res)
-    expect(parsed).toStrictEqual(expected)
-  })
-
-  it('should fail when token is incorrect type', () => {
-    const res = {
-      result: 'bad result',
-    }
-    const expected = failure('Incorrect token format')
-    const parsed = safeParseBearerToken(res)
-    expect(parsed).toStrictEqual(expected)
-  })
-})
 
 describe('safeParseFileProgressResponse', () => {
   const fixture = {
@@ -129,17 +104,19 @@ describe('safeParseStartFileExportResponse', () => {
   })
 })
 
-describe('safeParseTestResponse', () => {
+describe('safeParseWhoAmI', () => {
   const fixture = {
     result: {
-      userId: 'testUser',
+      userId: 'UR_1',
+      brandId: 'brand',
+      userName: 'user@example.com',
     },
   }
 
   it('should pass with correct data', () => {
     const res = fixture
-    const expected = success('Connection successful')
-    const parsed = safeParseTestResponse(res)
+    const expected = success(fixture.result)
+    const parsed = safeParseWhoAmI(res)
     expect(parsed).toStrictEqual(expected)
   })
 
@@ -147,8 +124,8 @@ describe('safeParseTestResponse', () => {
     const res = {
       result: 'bad result',
     }
-    const expected = failure('Incorrect test response format')
-    const parsed = safeParseTestResponse(res)
+    const expected = failure('Incorrect whoami response format')
+    const parsed = safeParseWhoAmI(res)
     expect(parsed).toStrictEqual(expected)
   })
 })
@@ -215,59 +192,6 @@ describe('safeParseStartContactsImportResponse', () => {
     }
     const expected = failure('Start Contacts Import Response invalid format')
     const parsed = safeParseStartContactsImportResponse(res)
-    expect(parsed).toStrictEqual(expected)
-  })
-})
-
-describe('safeParseContactImportSummary', () => {
-  const fixture = {
-    result: {
-      percentComplete: 0,
-      contacts: {
-        count: {
-          added: 100,
-          updated: 20,
-          failed: 0,
-        },
-      },
-      invalidEmails: ['someone@anyisp.com'],
-      transactions: {
-        count: {
-          created: 100,
-        },
-      },
-      status: 'Complete',
-    },
-  }
-
-  it('should pass with correct data', () => {
-    const res = fixture
-    const expected = success(fixture.result)
-    const parsed = safeParseContactsImportSummary(res)
-    expect(parsed).toStrictEqual(expected)
-  })
-
-  it('should fail when error response', () => {
-    const res = {
-      error: {
-        errorCode: '401',
-        errorMessage: 'Some error',
-      },
-    }
-    const expected = failure(`Unable to parse Contacts Import Summary Response`)
-    const parsed = safeParseContactsImportSummary(res)
-    expect(parsed).toStrictEqual(expected)
-  })
-
-  it('should fail with missing props', () => {
-    const res = {
-      result: {
-        percentComplete: 0,
-        status: 'inProgress',
-      },
-    }
-    const expected = failure('Contacts Import Summary Response invalid format')
-    const parsed = safeParseContactsImportSummary(res)
     expect(parsed).toStrictEqual(expected)
   })
 })

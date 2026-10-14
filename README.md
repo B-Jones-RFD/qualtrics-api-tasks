@@ -355,20 +355,6 @@ Implements [Get Contacts Import Status](https://api.qualtrics.com/c5d22705b1d45-
 | importId      | string | Contacts Import ID     | Y        |
 | mailingListId | string | Mailing List ID        | Y        |
 
-##### getContactsImportSummary(options)
-
-> **Deprecated.** Qualtrics has deprecated this endpoint (unsupported after 2026-06-30). `getContactsImportStatus` returns the same fields, including `invalidEmails`. This action will be removed in 2.0.
-
-Implements [Get Contacts Import Summary](https://api.qualtrics.com/6f0480b307053-get-transaction-contacts-import-summary)
-
-`options`
-
-| Property      | Type   | Description            | Required |
-| ------------- | ------ | ---------------------- | -------- |
-| directoryId   | string | Qualtrics Directory ID | Y        |
-| importId      | string | Contacts Import ID     | Y        |
-| mailingListId | string | Mailing List ID        | Y        |
-
 ##### importContacts(options)
 
 Implements [Contact Import](https://api.qualtrics.com/1ac99fba8ca5b-contact-imports) multistep process. This runs the following actions:
@@ -469,6 +455,8 @@ Multistep process to execute a survey distribution. Runs the following actions:
 2. [Import Contacts](#importcontactsoptions)
 3. [Create Distribution](#createdistributionoptions)
 4. [Create Reminder](#createreminderoptions)
+
+Resolves to `{ mailingListId, import, distributionId, reminderId }` — every id created plus the import's final status (`DistributionResult`). A failing step returns that step's failure unchanged; ids created before it are not rolled back.
 
 `options`
 
@@ -706,11 +694,32 @@ Async iterator over pages of library messages; see `iterateDistributions`.
 
 ##### testConnection(options)
 
-Calls `/API/v3/whoami` and resolves to `'Connection successful'`. Takes `RequestOptions` only.
+Calls [Who Am I](https://api.qualtrics.com/dc58b844b8a14-who-am-i) and resolves to the caller's identity: `{ userId, brandId, userName, accountType, firstName, lastName, email, datacenter }` (`WhoAmI`). Takes `RequestOptions` only.
+
+#### Low-level helpers
+
+Exported for callers who compose their own workflows; everything else in `src` is private.
+
+| Export                                   | Purpose                                                                                                         |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `createConnectionContext(options)`       | One managed-token cache to share between standalone actions ([Managed OAuth](#managed-oauth)).                  |
+| `withRetry(retry, signal, attempt)`      | The retry loop the read actions use; wrap your own `() => Promise<Result<T>>` in it.                            |
+| `isTransientFailure(failure)`            | Default `retryOn` predicate: `NETWORK`, `TIMEOUT`, HTTP 429/502/503/504.                                        |
+| `decodeResponseExport(file, format)`     | Unzips and decodes a downloaded export ([Response exports](#response-exports)).                                 |
+| `readZip(buffer)`                        | Minimal zip reader (`Result<ZipEntry[]>`) used by `decodeResponseExport`.                                       |
+| `QualtricsApiError`, `ManagedTokenError` | Error classes thrown inside the transport; exposed so `details` shapes can be reused. Actions never throw them. |
+
+## Migrating to 2.0
+
+- **`distributeSurveys` resolves to `DistributionResult`** (`{ mailingListId, import, distributionId, reminderId }`) instead of the reminder's id. Replace `res.data` with `res.data.reminderId`.
+- **`testConnection` resolves to the `whoami` payload** (`WhoAmI`, with `userId` etc.) instead of the string `'Connection successful'`. Check `res.success`, not `res.data`.
+- **`getContactsImportSummary` is removed** — Qualtrics deprecated the endpoint. `getContactsImportStatus` returns the same fields, and `importContacts` already uses it. `GetContactsImportSummaryOptions` is gone; `ContactsImportSummaryResponse` remains as the return type of `importContacts`.
+- **`exportResponseData` is removed.** Use `exportResponses` (same options, same result).
+- **Internal helpers are no longer exported:** `toFailure`, `validateConnectionOptions`, `parseQualtricsError`, `parseRetryAfter`. `createConnection` still validates its options and throws `TypeError`. See [Low-level helpers](#low-level-helpers) for what remains public.
 
 ## Migrating to 1.0
 
-- **`exportResponses` returns the decoded export** (`string` for text formats, `Buffer` for `spss`) instead of the raw downloaded file. If you were unzipping the result yourself, remove that step. For the raw bytes use `getResponseExportFile`. `exportResponseData` (added in 0.7) is now an alias and will be removed in 2.0.
+- **`exportResponses` returns the decoded export** (`string` for text formats, `Buffer` for `spss`) instead of the raw downloaded file. If you were unzipping the result yourself, remove that step. For the raw bytes use `getResponseExportFile`. `exportResponseData` (added in 0.7) was an alias until 2.0.
 - **`testConnection(bearerToken: string)` is gone.** Call `testConnection({ bearerToken })` or just `testConnection()`.
 
 Everything added during 0.x — structured `Failure` with `code`, `RequestOptions` (`signal`/`timeout`/`bearerToken`), managed OAuth (`oauth`), `retry`, the paging helpers, named option types — is unchanged. If you are coming from 0.3 or earlier, note that `Failure` gained a required `code` property in 0.5; branch on it instead of matching `error` text.

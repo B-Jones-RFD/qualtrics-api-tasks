@@ -74,13 +74,8 @@ export const createConnection: ConnectionFactory = (options) => {
       options,
       context
     ),
-    exportResponseData: methods.exportResponseData(options, context),
     getBearerToken: methods.getBearerToken(options),
     getContactsImportStatus: methods.getContactsImportStatus(options, context),
-    getContactsImportSummary: methods.getContactsImportSummary(
-      options,
-      context
-    ),
     getDistribution: methods.getDistribution(options, context),
     getNextDistributionsPage: methods.getNextDistributionsPage(
       options,

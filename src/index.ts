@@ -1,13 +1,7 @@
-export * from './createConnection'
+export { createConnection } from './createConnection'
 export * from './types'
 export * from './methods'
 export { createConnectionContext } from './context'
 export { readZip, type ZipEntry } from './zip'
 export { isTransientFailure, withRetry } from './retry'
-export {
-  ManagedTokenError,
-  QualtricsApiError,
-  parseQualtricsError,
-  parseRetryAfter,
-  toFailure,
-} from './errors'
+export { ManagedTokenError, QualtricsApiError } from './errors'

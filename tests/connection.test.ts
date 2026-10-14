@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { createConnection, validateConnectionOptions } from '../src'
+import { createConnection } from '../src'
+import { validateConnectionOptions } from '../src/createConnection'
 
 describe('createConnection', () => {
   it('binds every action without performing I/O', () => {

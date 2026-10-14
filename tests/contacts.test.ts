@@ -178,3 +178,93 @@ describe('createDistribution', () => {
     })
   })
 })
+
+describe('distributeSurveys', () => {
+  it('returns every id it created and the import status', async () => {
+    const seen: string[] = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: URL, init: RequestInit) => {
+        seen.push(`${init.method} ${url.pathname}`)
+        const path = url.pathname
+        if (path.endsWith('/mailinglists'))
+          return Response.json({ result: { id: 'CG_new' } })
+        if (path.endsWith('/transactioncontacts'))
+          return Response.json(
+            {
+              result: {
+                id: 'PGRS_1',
+                contacts: [],
+                tracking: {},
+                status: 'queued',
+              },
+            },
+            { status: 202 }
+          )
+        if (path.endsWith('/transactioncontacts/PGRS_1'))
+          return Response.json({
+            result: { percentComplete: 100, status: 'complete', ...counts },
+          })
+        if (path === '/API/v3/distributions')
+          return Response.json({ result: { id: 'EMD_1' } })
+        if (path.endsWith('/reminders'))
+          return Response.json({ result: { distributionId: 'EMD_2' } })
+        return new Response('not found', { status: 404 })
+      })
+    )
+    const connection = createConnection({ datacenterId: 'ca1', apiToken: 'a' })
+    const res = await connection.distributeSurveys({
+      directoryId: 'POOL_1',
+      mailingListName: 'List',
+      contacts: options.contacts,
+      libraryId: 'UR_1',
+      distributionMessageId: 'MS_1',
+      reminderMessageId: 'MS_2',
+      fromEmail: 'a@example.com',
+      fromName: 'A',
+      distributionSubject: 'S',
+      reminderSubject: 'R',
+      surveyId: 'SV_1',
+      expirationDate: new Date('2026-03-01T00:00:00Z'),
+      type: 'Individual',
+      distributionSendDate: new Date('2026-01-01T00:00:00Z'),
+      reminderSendDate: new Date('2026-01-08T00:00:00Z'),
+    })
+    expect(res).toStrictEqual({
+      success: true,
+      data: {
+        mailingListId: 'CG_new',
+        import: {
+          percentComplete: 100,
+          status: 'complete',
+          ...counts,
+          invalidEmails: [],
+        },
+        distributionId: 'EMD_1',
+        reminderId: 'EMD_2',
+      },
+    })
+    expect(seen).toStrictEqual([
+      'POST /API/v3/directories/POOL_1/mailinglists',
+      'POST /API/v3/directories/POOL_1/mailinglists/CG_new/transactioncontacts',
+      'GET /API/v3/directories/POOL_1/mailinglists/CG_new/transactioncontacts/PGRS_1',
+      'POST /API/v3/distributions',
+      'POST /API/v3/distributions/EMD_1/reminders',
+    ])
+  })
+})
+
+describe('testConnection', () => {
+  it('resolves to the whoami payload', async () => {
+    const me = { userId: 'UR_1', brandId: 'acme', userName: 'me@acme.com' }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ result: me }))
+    )
+    const connection = createConnection({ datacenterId: 'ca1', apiToken: 'a' })
+    expect(await connection.testConnection()).toStrictEqual({
+      success: true,
+      data: me,
+    })
+  })
+})

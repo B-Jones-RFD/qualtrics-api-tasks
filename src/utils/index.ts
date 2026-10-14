@@ -19,28 +19,6 @@ export function failure(error: string, code: FailureCode = 'PARSE'): Failure {
   }
 }
 
-/**
- * Builds the auth header for a request. A per-call `bearerToken` takes
- * precedence over the connection-level `apiToken`.
- */
-export function getAuthHeaders(
-  apiToken: string | undefined,
-  bearerToken: string | undefined
-) {
-  if (bearerToken) {
-    return new Headers({
-      Authorization: `Bearer ${bearerToken}`,
-    })
-  }
-  if (apiToken)
-    return new Headers({
-      'X-API-TOKEN': apiToken,
-    })
-  throw new Error(
-    'Unable to authorize request. Bearer Token or Api Token required.'
-  )
-}
-
 /** Percent-encodes one URL path segment (an id). */
 export function segment(value: string): string {
   return encodeURIComponent(value)

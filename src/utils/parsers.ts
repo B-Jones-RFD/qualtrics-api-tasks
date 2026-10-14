@@ -1,7 +1,6 @@
 import type {
   BearerTokenResponse,
   ContactsImportStatusResponse,
-  ContactsImportSummaryResponse,
   Distribution,
   FileProgressResponse,
   LibraryMessage,
@@ -9,6 +8,7 @@ import type {
   Result,
   StartContactsImportResponse,
   StartResponseExportResponse,
+  WhoAmI,
 } from '../types'
 import { success, failure } from './index'
 
@@ -44,12 +44,6 @@ function parseEnvelope<T>(
     : failure(`${what} invalid format`)
 }
 
-export function safeParseBearerToken(response: unknown): Result<string> {
-  return isRecord(response) && typeof response.access_token === 'string'
-    ? success(response.access_token)
-    : failure('Incorrect token format')
-}
-
 export function safeParseOAuthToken(
   response: unknown
 ): Result<BearerTokenResponse> {
@@ -62,11 +56,11 @@ export function safeParseOAuthToken(
   return success({ accessToken: response.access_token, expiresIn })
 }
 
-export function safeParseTestResponse(response: unknown): Result<string> {
+export function safeParseWhoAmI(response: unknown): Result<WhoAmI> {
   const result = resultOf(response)
-  return result?.userId
-    ? success('Connection successful')
-    : failure('Incorrect test response format')
+  return typeof result?.userId === 'string'
+    ? success(result as WhoAmI)
+    : failure('Incorrect whoami response format')
 }
 
 export function safeParseStartFileExportResponse(
@@ -110,18 +104,6 @@ export function safeParseStartContactsImportResponse(
     'id',
     'contacts',
     'tracking',
-    'status',
-  ])
-}
-
-export function safeParseContactsImportSummary(
-  response: unknown
-): Result<ContactsImportSummaryResponse> {
-  return parseEnvelope(response, 'Contacts Import Summary Response', [
-    'percentComplete',
-    'contacts',
-    'invalidEmails',
-    'transactions',
     'status',
   ])
 }

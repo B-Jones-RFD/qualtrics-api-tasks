@@ -5,10 +5,11 @@ network on your behalf, so security reports are taken seriously.
 
 ## Supported versions
 
-| Version | Supported |
-| ------- | --------- |
-| 1.x     | Yes       |
-| < 1.0   | No        |
+| Version | Supported           |
+| ------- | ------------------- |
+| 2.x     | Yes                 |
+| 1.x     | Security fixes only |
+| < 1.0   | No                  |
 
 ## Reporting a vulnerability
 

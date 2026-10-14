@@ -1,4 +1,8 @@
-import type { ActionFactory, DistributionOptions } from '../../types'
+import type {
+  ActionFactory,
+  DistributionOptions,
+  DistributionResult,
+} from '../../types'
 import { toFailure } from '../../errors'
 import { createMailingList } from '../createMailingList'
 import { importContacts } from '../contacts/importContacts'
@@ -11,9 +15,12 @@ import { createConnectionContext } from '../../context'
  *
  * Implements survey distribution end to end: creates a mailing list, imports
  * the contacts, creates the distribution and schedules a reminder. The data
- * is the reminder's distribution id.
+ * carries every id created along the way and the import's final status.
  */
-export const distributeSurveys: ActionFactory<DistributionOptions, string> =
+export const distributeSurveys: ActionFactory<
+  DistributionOptions,
+  DistributionResult
+> =
   (connectionOptions, context = createConnectionContext(connectionOptions)) =>
   async (options) => {
     try {
@@ -75,7 +82,7 @@ export const distributeSurveys: ActionFactory<DistributionOptions, string> =
       if (!distribution.success) return distribution
 
       // Step 4: Create Reminder
-      return await createReminder(
+      const reminder = await createReminder(
         connectionOptions,
         context
       )({
@@ -90,6 +97,17 @@ export const distributeSurveys: ActionFactory<DistributionOptions, string> =
         sendDate: options.reminderSendDate,
         ...request,
       })
+      if (!reminder.success) return reminder
+
+      return {
+        success: true,
+        data: {
+          mailingListId,
+          import: imported.data,
+          distributionId: distribution.data,
+          reminderId: reminder.data,
+        },
+      }
     } catch (error) {
       return toFailure('distributeSurveys', error)
     }
