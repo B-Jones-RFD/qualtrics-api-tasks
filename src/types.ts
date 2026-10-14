@@ -238,11 +238,48 @@ export type LibraryMessage = {
   category: string
 }
 
-/** One page of a list endpoint. `nextPage` is a URL, or `null` on the last page. */
+/**
+ * One page of a list endpoint. `nextPage` is the absolute URL of the next
+ * page, or `null` on the last one. Pass it to the matching `getNext*Page`
+ * action, or use `listAll*` / `iterate*` to follow it automatically.
+ */
 export type PagedResponse<T> = {
   elements: T[]
   nextPage: string | null
 }
+
+/** Options for the `getNext*Page` actions. */
+export type GetNextPageOptions = RequestOptions & {
+  /** The `nextPage` URL from a previous page. Must be on the connection's datacenter host. */
+  nextPage: string
+}
+
+/** Options for the `listAll*` and `iterate*` actions: the list options plus a page cap. */
+export type ListAllOptions<TListOptions> = TListOptions & {
+  /** Stop after this many pages (all pages when omitted). */
+  maxPages?: number
+}
+
+/**
+ * Yields one page {@link Result} per request until Qualtrics reports no more
+ * pages, `maxPages` is reached, or a page fails (the failure is yielded, then
+ * iteration ends). Never throws.
+ *
+ * @example
+ * for await (const page of connection.iterateDistributions(options)) {
+ *   if (!page.success) throw new Error(page.error)
+ *   for (const d of page.data.elements) console.log(d.id)
+ * }
+ */
+export type PagedIterator<TListOptions, T> = (
+  options: ListAllOptions<TListOptions>
+) => AsyncGenerator<Result<PagedResponse<T>>, void, undefined>
+
+/**
+ * Decoded response export: a UTF-8 string for `csv`, `tsv`, `json`, `ndjson`
+ * and `xml`; a `Buffer` for `spss`.
+ */
+export type ResponseExportData = string | Buffer
 
 // ---------------------------------------------------------------------------
 // Action options
@@ -462,49 +499,185 @@ export type ContactsImportStatusResponse = {
 // Connection
 // ---------------------------------------------------------------------------
 
+/**
+ * Every action bound to one datacenter, as returned by `createConnection`.
+ * Each member resolves to a {@link Result} and never throws. The same actions
+ * are exported as standalone factories (`getDistribution(options, context?)`)
+ * for single use or tree-shaking.
+ */
 export type Connection = {
-  createDistribution: Action<CreateDistributionOptions, string>
-  createMailingList: Action<CreateMailingListOptions, string>
-  createReminder: Action<CreateReminderOptions, string>
-  distributeSurveys: Action<DistributionOptions, string>
-  exportResponses: Action<ExportResponsesOptions, Buffer>
+  // --- Authentication -----------------------------------------------------
+
+  /**
+   * Requests an OAuth 2.0 client-credentials bearer token and returns it.
+   * Pass the same credentials as {@link ConnectionOptions.oauth} instead to
+   * have the connection manage the token for you.
+   * @see https://api.qualtrics.com/9398592961ced-o-auth-authentication-client-credentials
+   */
   getBearerToken: Action<GetBearerTokenOptions, string>
-  getContactsImportStatus: Action<
-    GetContactsImportStatusOptions,
-    ContactsImportStatusResponse
-  >
-  getContactsImportSummary: Action<
-    GetContactsImportSummaryOptions,
-    ContactsImportSummaryResponse
-  >
-  getDistribution: Action<GetDistributionOptions, Distribution>
-  getResponseExportFile: Action<GetResponseExportFileOptions, Buffer>
-  getResponseExportProgress: Action<
-    GetResponseExportProgressOptions,
-    FileProgressResponse
-  >
+
+  /**
+   * Calls `/API/v3/whoami` to verify the credentials. Resolves to
+   * `'Connection successful'`.
+   *
+   * Accepts {@link RequestOptions}; passing a bare bearer token string is
+   * deprecated and will be removed in 1.0.
+   */
+  testConnection: (options?: RequestOptions | string) => Promise<Result<string>>
+
+  // --- Contacts -----------------------------------------------------------
+
+  /**
+   * Imports contacts into a mailing list end to end: starts the import,
+   * polls its status once a second (up to five minutes) and returns the
+   * summary. Fails with `HTTP` if Qualtrics reports the import failed and
+   * `TIMEOUT` if it does not finish in time.
+   * @see https://api.qualtrics.com/1ac99fba8ca5b-contact-imports
+   */
   importContacts: Action<ImportContactsOptions, ContactsImportSummaryResponse>
-  listDistributions: Action<
-    ListDistributionsOptions,
-    PagedResponse<Distribution>
-  >
-  listLibraryMessages: Action<
-    ListLibraryMessagesOptions,
-    PagedResponse<LibraryMessage>
-  >
+
+  /** Step 1 of a contacts import: creates the transaction-contacts import and returns its id. */
   startContactsImport: Action<
     StartContactsImportOptions,
     StartContactsImportResponse
   >
+
+  /** Step 2 of a contacts import: reports `percentComplete` and `status`. */
+  getContactsImportStatus: Action<
+    GetContactsImportStatusOptions,
+    ContactsImportStatusResponse
+  >
+
+  /** Step 3 of a contacts import: counts of added/updated/failed contacts and invalid emails. */
+  getContactsImportSummary: Action<
+    GetContactsImportSummaryOptions,
+    ContactsImportSummaryResponse
+  >
+
+  // --- Mailing lists and messages ----------------------------------------
+
+  /**
+   * Creates a mailing list in a directory and returns its id.
+   * @see https://api.qualtrics.com/3f633e4cea6cd-create-mailing-list
+   */
+  createMailingList: Action<CreateMailingListOptions, string>
+
+  /**
+   * Lists one page of a library's messages. Follow `nextPage` with
+   * {@link Connection.getNextLibraryMessagesPage}, or use
+   * {@link Connection.listAllLibraryMessages} / {@link Connection.iterateLibraryMessages}.
+   * @see https://api.qualtrics.com/1d60a66b340fa-list-library-messages
+   */
+  listLibraryMessages: Action<
+    ListLibraryMessagesOptions,
+    PagedResponse<LibraryMessage>
+  >
+
+  /** Fetches the page a `listLibraryMessages` result's `nextPage` points at. */
+  getNextLibraryMessagesPage: Action<
+    GetNextPageOptions,
+    PagedResponse<LibraryMessage>
+  >
+
+  /** Collects every page of library messages into one array; a failed page fails the call. */
+  listAllLibraryMessages: Action<
+    ListAllOptions<ListLibraryMessagesOptions>,
+    LibraryMessage[]
+  >
+
+  /** Iterates library messages one page per request. See {@link PagedIterator}. */
+  iterateLibraryMessages: PagedIterator<
+    ListLibraryMessagesOptions,
+    LibraryMessage
+  >
+
+  // --- Distributions ------------------------------------------------------
+
+  /**
+   * Distributes a survey end to end: creates a mailing list, imports the
+   * contacts, creates the distribution and schedules a reminder. Resolves to
+   * the reminder's distribution id. Each step's failure is returned as-is.
+   */
+  distributeSurveys: Action<DistributionOptions, string>
+
+  /**
+   * Creates a distribution and returns its id.
+   * @see https://api.qualtrics.com/8e8a6cc5bcdc1-create-distribution
+   */
+  createDistribution: Action<CreateDistributionOptions, string>
+
+  /**
+   * Schedules a reminder for a distribution and returns the reminder's
+   * distribution id.
+   * @see https://api.qualtrics.com/f4e0d2c4c6a0e-create-reminder-distribution
+   */
+  createReminder: Action<CreateReminderOptions, string>
+
+  /**
+   * Reads one distribution, including its send statistics.
+   * @see https://api.qualtrics.com/437447486ad95-get-distribution
+   */
+  getDistribution: Action<GetDistributionOptions, Distribution>
+
+  /**
+   * Lists one page of a survey's distributions in a date range. Follow
+   * `nextPage` with {@link Connection.getNextDistributionsPage}, or use
+   * {@link Connection.listAllDistributions} / {@link Connection.iterateDistributions}.
+   * @see https://api.qualtrics.com/234bb6b16cf6d-list-distributions
+   */
+  listDistributions: Action<
+    ListDistributionsOptions,
+    PagedResponse<Distribution>
+  >
+
+  /** Fetches the page a `listDistributions` result's `nextPage` points at. */
+  getNextDistributionsPage: Action<
+    GetNextPageOptions,
+    PagedResponse<Distribution>
+  >
+
+  /** Collects every page of distributions into one array; a failed page fails the call. */
+  listAllDistributions: Action<
+    ListAllOptions<ListDistributionsOptions>,
+    Distribution[]
+  >
+
+  /** Iterates distributions one page per request. See {@link PagedIterator}. */
+  iterateDistributions: PagedIterator<ListDistributionsOptions, Distribution>
+
+  // --- Responses ----------------------------------------------------------
+
+  /**
+   * Exports survey responses end to end: starts the export, polls its
+   * progress once a second (up to five minutes) and downloads the file.
+   * Resolves to the raw file bytes — a zip archive unless `compress: false`
+   * was passed. Prefer {@link Connection.exportResponseData} for the decoded
+   * contents; in 1.0 this action will return the decoded contents itself.
+   * @see https://api.qualtrics.com/u9e5lh4172v0v-survey-response-export-guide
+   */
+  exportResponses: Action<ExportResponsesOptions, Buffer>
+
+  /**
+   * Like {@link Connection.exportResponses} but resolves to the decoded
+   * export: a UTF-8 string for the text formats, a `Buffer` for `spss`.
+   */
+  exportResponseData: Action<ExportResponsesOptions, ResponseExportData>
+
+  /** Step 1 of a response export: starts it and returns the `progressId`. */
   startResponseExport: Action<
     StartResponseExportOptions,
     StartResponseExportResponse
   >
-  /**
-   * Calls `/whoami`. Accepts {@link RequestOptions}; passing a bare bearer
-   * token string is deprecated and will be removed in 1.0.
-   */
-  testConnection: (options?: RequestOptions | string) => Promise<Result<string>>
+
+  /** Step 2 of a response export: reports `percentComplete`, `status` and, when done, `fileId`. */
+  getResponseExportProgress: Action<
+    GetResponseExportProgressOptions,
+    FileProgressResponse
+  >
+
+  /** Step 3 of a response export: downloads the file as raw bytes. */
+  getResponseExportFile: Action<GetResponseExportFileOptions, Buffer>
 }
 
+/** Signature of `createConnection`. */
 export type ConnectionFactory = (options: ConnectionOptions) => Connection

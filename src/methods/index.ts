@@ -15,3 +15,13 @@ export { listLibraryMessages } from './listLibraryMessages'
 export { startContactsImport } from './contacts/startContactsImport'
 export { startResponseExport } from './responses/startResponseExport'
 export { testConnection } from './testConnection'
+export { exportResponseData } from './responses/exportResponseData'
+export { decodeResponseExport } from './responses/decodeResponseExport'
+export {
+  getNextDistributionsPage,
+  getNextLibraryMessagesPage,
+  iterateDistributions,
+  iterateLibraryMessages,
+  listAllDistributions,
+  listAllLibraryMessages,
+} from './paging'

@@ -70,6 +70,7 @@ export const createConnection: ConnectionFactory = (options) => {
     createReminder: methods.createReminder(options, context),
     distributeSurveys: methods.distributeSurveys(options, context),
     exportResponses: methods.exportResponses(options, context),
+    exportResponseData: methods.exportResponseData(options, context),
     getBearerToken: methods.getBearerToken(options),
     getContactsImportStatus: methods.getContactsImportStatus(options, context),
     getContactsImportSummary: methods.getContactsImportSummary(
@@ -77,6 +78,18 @@ export const createConnection: ConnectionFactory = (options) => {
       context
     ),
     getDistribution: methods.getDistribution(options, context),
+    getNextDistributionsPage: methods.getNextDistributionsPage(
+      options,
+      context
+    ),
+    getNextLibraryMessagesPage: methods.getNextLibraryMessagesPage(
+      options,
+      context
+    ),
+    iterateDistributions: methods.iterateDistributions(options, context),
+    iterateLibraryMessages: methods.iterateLibraryMessages(options, context),
+    listAllDistributions: methods.listAllDistributions(options, context),
+    listAllLibraryMessages: methods.listAllLibraryMessages(options, context),
     getResponseExportFile: methods.getResponseExportFile(options, context),
     getResponseExportProgress: methods.getResponseExportProgress(
       options,

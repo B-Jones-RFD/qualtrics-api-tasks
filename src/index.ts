@@ -2,6 +2,7 @@ export * from './createConnection'
 export * from './types'
 export * from './methods'
 export { createConnectionContext } from './context'
+export { readZip, type ZipEntry } from './zip'
 export { isTransientFailure, withRetry } from './retry'
 export {
   ManagedTokenError,

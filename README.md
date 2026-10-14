@@ -433,9 +433,38 @@ Implements [List Distributions](https://api.qualtrics.com/234bb6b16cf6d-list-dis
 | pageSize                | number  | Distribution elements to return | N        | 100     |
 | bearerToken             | string  | Valid Bearer Token              | N        |         |
 
+##### getNextDistributionsPage(options)
+
+Fetches the page a previous result's `nextPage` points at. The link must be on the connection's datacenter host; any other host is refused without a request.
+
+| Property | Type   | Description                                  | Required |
+| -------- | ------ | -------------------------------------------- | -------- |
+| nextPage | string | `nextPage` from a `listDistributions` result | Y        |
+
+##### listAllDistributions(options)
+
+Same options as `listDistributions` plus `maxPages?: number`. Follows `nextPage` and resolves to `Distribution[]`. A failed page fails the whole call; the error names the page number and how many items had been collected.
+
+##### iterateDistributions(options)
+
+Same options as `listAllDistributions`. Returns an async iterator that yields one `Result<PagedResponse<Distribution>>` per request and ends after the last page, `maxPages`, or the first failed page (which is yielded).
+
+```ts
+for await (const page of connection.iterateDistributions({
+  surveyId,
+  sendStartDate,
+  sendEndDate,
+})) {
+  if (!page.success) throw new Error(page.error)
+  for (const distribution of page.data.elements) console.log(distribution.id)
+}
+```
+
 #### Responses
 
 ##### exportResponses(options)
+
+Resolves to the raw downloaded file as a `Buffer` — a zip archive unless `compress: false` was passed. See `exportResponseData` for the decoded contents.
 
 Implements [Survey Response File Export](https://api.qualtrics.com/u9e5lh4172v0v-survey-response-export-guide) multistep process. Runs the following actions:
 
@@ -471,6 +500,26 @@ Implements [Survey Response File Export](https://api.qualtrics.com/u9e5lh4172v0v
 | includeLabelColumns             | boolean  | Export two columns, recode and labels       | N        | false   |
 | sortByLastModifiedDate          | boolean  | Sort responses by modified date             | N        | false   |
 | bearerToken                     | string   | Valid Bearer Token                          | N        |         |
+
+##### exportResponseData(options)
+
+Same options as `exportResponses`. Runs the export and decodes the downloaded file, so the data is the export's contents whether or not Qualtrics compressed it: a UTF-8 `string` for `csv`, `tsv`, `json`, `ndjson` and `xml`; a `Buffer` for `spss`.
+
+```ts
+const res = await connection.exportResponseData({
+  surveyId,
+  startDate,
+  endDate,
+  format: 'csv',
+})
+if (res.success) await writeFile('responses.csv', res.data)
+```
+
+In 1.0 `exportResponses` will return the decoded contents itself; use `getResponseExportFile` for the raw bytes.
+
+##### decodeResponseExport(file, format)
+
+The decoder used by `exportResponseData`, exported for files obtained via the three-step export. Reads the single-entry zip archive Qualtrics produces (`readZip` is exported too) and returns `Result<string | Buffer>`.
 
 ##### getResponseExportFile(options)
 
@@ -526,6 +575,18 @@ Implements [List Library Messages](https://api.qualtrics.com/1d60a66b340fa-list-
 | category    | string | Message category    | N        |
 | offset      | number | Pagination offset   | N        |
 | bearerToken | string | Valid Bearer Token  | N        |
+
+##### getNextLibraryMessagesPage(options)
+
+Fetches the page a previous result's `nextPage` points at (same-host only).
+
+##### listAllLibraryMessages(options)
+
+Same options as `listLibraryMessages` plus `maxPages?: number`. Resolves to `LibraryMessage[]`.
+
+##### iterateLibraryMessages(options)
+
+Async iterator over pages of library messages; see `iterateDistributions`.
 
 ##### startResponseExports(options)
 
