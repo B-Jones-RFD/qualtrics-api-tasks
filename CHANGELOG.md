@@ -1,5 +1,11 @@
 # @b-jones-rfd/qualtrics-api-tasks
 
+## 0.4.1
+
+### Patch Changes
+
+- f3963af: Apply the packaging changes described in 0.4.0 (exports map, files allowlist, provenance, package checks, CI matrix, Node >=20); stop committing generated docs.
+
 ## 0.4.0
 
 ### Minor Changes
