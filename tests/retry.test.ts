@@ -14,6 +14,7 @@ const http = (status: number, extra: Partial<Failure> = {}): Failure => ({
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.restoreAllMocks()
   vi.useRealTimers()
 })
 
@@ -103,6 +104,7 @@ describe('withRetry', () => {
     expect(aborted).toHaveBeenCalledTimes(1)
 
     vi.useFakeTimers()
+    vi.spyOn(Math, 'random').mockReturnValue(1) // full backoff, no jitter
     const controller = new AbortController()
     const attempt = vi.fn().mockResolvedValue(http(503))
     const pending = withRetry(
