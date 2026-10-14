@@ -1,11 +1,14 @@
 import type { ActionFactory } from '../../types'
 import { failure, getErrorMessage, getAuthHeaders } from '../../utils'
+import { safeParseFile } from '../../utils/parsers'
 import { execute } from '../../qualtrics'
 
 /**
  * Get Response Export File
  *
- * Implements Get Response Export File.  This is step 3 in the survey response file export process.
+ * Implements Get Response Export File. This is step 3 in the survey response
+ * file export process. The data is the file body as a `Buffer` — a zip
+ * archive unless the export was started with `compress: false`.
  * @see https://api.qualtrics.com/41296b6f2e828-get-response-export-file
  */
 export const getResponseExportFile: ActionFactory<
@@ -24,7 +27,7 @@ export const getResponseExportFile: ActionFactory<
         timeout: connectionOptions.timeout,
       }
       const response = await execute(config)
-      return response
+      return safeParseFile(response)
     } catch (error) {
       const message = getErrorMessage(error)
       return failure(message)

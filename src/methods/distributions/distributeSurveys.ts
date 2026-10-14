@@ -6,10 +6,11 @@ import { createDistribution } from './createDistribution'
 import { createReminder } from './createReminder'
 
 /**
- * Export Survey Response File
+ * Distribute Surveys
  *
- * Implements Survey Response File Export end to end
- * @see https://api.qualtrics.com/u9e5lh4172v0v-survey-response-export-guide
+ * Implements survey distribution end to end: creates a mailing list, imports
+ * the contacts, creates the distribution and schedules a reminder. The data
+ * is the reminder's distribution id.
  */
 export const distributeSurveys: ActionFactory<DistributionOptions, string> =
   (connectionOptions) => async (options) => {

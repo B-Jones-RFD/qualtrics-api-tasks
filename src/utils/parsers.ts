@@ -155,3 +155,11 @@ export function safeParseListDistributions(response: any): Result<{
       : failure(`elements missing in List Distributions response`)
     : failure(`Unable to parse List Distribution response`)
 }
+
+/** Accepts a downloaded file body as a `Buffer` (text bodies are encoded as UTF-8). */
+export function safeParseFile(response: unknown): Result<Buffer> {
+  if (Buffer.isBuffer(response)) return success(response)
+  if (typeof response === 'string')
+    return success(Buffer.from(response, 'utf8'))
+  return failure('Unexpected file response format')
+}

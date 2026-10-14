@@ -9,7 +9,7 @@ Helpers to perform common tasks using the [Qualtrics API](https://api.qualtrics.
 
 ## Prerequisites
 
-This project requires NodeJS (version >= 18) and NPM.
+This project requires NodeJS (version >= 22) and NPM.
 [Node](http://nodejs.org/) and [NPM](https://npmjs.org/) are really easy to install.
 To make sure you have them available on your machine,
 try running the following command.
@@ -24,14 +24,14 @@ v20.11.1
 
 ## Table of contents
 
-- [Qualtrics API Tasks](#qualtics-api-tasks)
+- [Qualtrics API Tasks](#qualtrics-api-tasks)
   - [Prerequisites](#prerequisites)
   - [Table of contents](#table-of-contents)
   - [Getting Started](#getting-started)
   - [Installation](#installation)
   - [Usage](#usage)
   - [API](#api)
-    - [createConnection](#createSiteConnection)
+    - [createConnection](#createconnection)
     - [Actions](#actions)
       - [Authentication](#authentication)
       - [Contacts](#contacts)
@@ -78,7 +78,7 @@ $ pnpm add @b-jones-rfd/qualtrics-api-tasks
 
 Actions can be performed against the Qualtrics API using instance methods on a Qualtrics Connection instance.
 
-If authenticating using [OAuth 2.0](https://api.qualtrics.com/9398592961ced-o-auth-authentication-client-credentials) use the getBearerToken action with a Client ID and secret to obtain a bearer token. If authenticating with an [API Token](https://api.qualtrics.com/2b4ffbd8af74e-api-key-authentication) pass the token as a connection option using the apiToken property.
+If authenticating using [OAuth 2.0](https://api.qualtrics.com/9398592961ced-o-auth-authentication-client-credentials) use the getBearerToken action with a Client ID and secret to obtain a bearer token. If authenticating with an [API Token](https://api.qualtrics.com/2b4ffbd8af74e-api-key-authentication) pass the token as a connection option using the apiToken property. When both are available, a `bearerToken` passed to an action takes precedence over the connection's `apiToken`.
 
 ```ts
 import { createConnection } from '@b-jones-rfd/qualtrics-api-tasks'
@@ -91,8 +91,16 @@ const connectionOptions = {
 
 const connection: Connection = createConnection(connectionOptions)
 
-async function getBearerToken(clientId: string, clientSecret: string) {
-  const result = await connection.getBearerToken({ clientId, clientSecret })
+async function getBearerToken(
+  clientId: string,
+  clientSecret: string,
+  scope: string
+) {
+  const result = await connection.getBearerToken({
+    clientId,
+    clientSecret,
+    scope,
+  })
   if (result.success) return result.data
   else throw new Error(result.error)
 }

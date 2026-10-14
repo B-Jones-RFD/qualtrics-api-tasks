@@ -21,23 +21,32 @@ export function getErrorMessage(error: unknown): string {
       typeof error.message === 'string'
       ? error.message
       : error.toString()
-    : 'An error occured'
+    : 'An error occurred'
 }
 
+/**
+ * Builds the auth header for a request. A per-call `bearerToken` takes
+ * precedence over the connection-level `apiToken`.
+ */
 export function getAuthHeaders(
   apiToken: string | undefined,
   bearerToken: string | undefined
 ) {
-  if (apiToken)
-    return new Headers({
-      'X-API-TOKEN': apiToken,
-    })
   if (bearerToken) {
     return new Headers({
       Authorization: `Bearer ${bearerToken}`,
     })
   }
+  if (apiToken)
+    return new Headers({
+      'X-API-TOKEN': apiToken,
+    })
   throw new Error(
     'Unable to authorize request. Bearer Token or Api Token required.'
   )
+}
+
+/** True when a Qualtrics job status reports a terminal failure. */
+export function isFailedStatus(status: unknown): boolean {
+  return typeof status === 'string' && /fail|error|cancel/i.test(status)
 }

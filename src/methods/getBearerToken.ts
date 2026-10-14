@@ -6,7 +6,7 @@ import { execute } from '../qualtrics'
 /**
  * Get Bearer Token
  *
- * Implements OAuth Authentication (Client Credentials
+ * Implements OAuth Authentication (Client Credentials)
  * @see https://api.qualtrics.com/9398592961ced-o-auth-authentication-client-credentials
  */
 export const getBearerToken: ActionFactory<
@@ -23,9 +23,11 @@ export const getBearerToken: ActionFactory<
           'Basic ' +
           Buffer.from(`${clientId}:${clientSecret}`).toString('base64'),
       })
-      const body = new FormData()
-      body.append('grant_type', 'client_credentials')
-      body.append('scope', scope)
+      headers.set('Content-Type', 'application/x-www-form-urlencoded')
+      const body = new URLSearchParams({
+        grant_type: 'client_credentials',
+        scope,
+      })
 
       const response = await execute({
         datacenterId,
