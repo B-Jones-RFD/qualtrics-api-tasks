@@ -7,6 +7,7 @@ import { toFailure } from '../../errors'
 import { segment } from '../../utils'
 import { safeParseStartContactsImportResponse } from '../../utils/parsers'
 import { execute } from '../../qualtrics'
+import { createConnectionContext } from '../../context'
 
 /**
  * Start Contacts Import
@@ -19,7 +20,7 @@ export const startContactsImport: ActionFactory<
   StartContactsImportOptions,
   StartContactsImportResponse
 > =
-  (connectionOptions) =>
+  (connectionOptions, context = createConnectionContext(connectionOptions)) =>
   async ({
     directoryId,
     mailingListId,
@@ -30,6 +31,7 @@ export const startContactsImport: ActionFactory<
     try {
       const response = await execute({
         connectionOptions,
+        context,
         request,
         route: `/API/v3/directories/${segment(directoryId)}/mailinglists/${segment(
           mailingListId

@@ -137,9 +137,13 @@ type ConnectionFactory = (options: ConnectionOptions) => Connection
 type ConnectionOptions = {
   datacenterId: string
   apiToken?: string
+  oauth?: { clientId: string; clientSecret: string; scope: string }
   timeout?: number
+  retry?: RetryOptions
 }
 ```
+
+Authentication for each request is resolved in this order: a `bearerToken` passed to the action, the managed token from `oauth`, then `apiToken`.
 
 `datacenterId`
 
@@ -153,11 +157,71 @@ type ConnectionOptions = {
 | ------ | ------------------- | -------- |
 | string | Qualtrics API Token | N        |
 
+`oauth`
+
+| Type         | Description                                                                         | Required |
+| ------------ | ----------------------------------------------------------------------------------- | -------- |
+| OAuthOptions | Client credentials for a managed bearer token — see [Managed OAuth](#managed-oauth) | N        |
+
 `timeout`
 
 | Type   | Default value | Description               | Example | Required |
 | ------ | ------------- | ------------------------- | ------- | -------- |
 | number | 30000         | Qualtrics request timeout | 1000    | N        |
+
+`retry`
+
+| Type         | Description                                                                             | Required |
+| ------------ | --------------------------------------------------------------------------------------- | -------- |
+| RetryOptions | Retry transient failures of read actions — see [Retrying](#retrying-transient-failures) | N        |
+
+#### Managed OAuth
+
+Pass your OAuth client credentials as `oauth` and the connection manages the bearer token for you: it is requested on first use, shared between concurrent calls, refreshed a minute before it expires, and re-requested once if Qualtrics answers 401. Nothing is sent until the first action runs.
+
+```ts
+const connection = createConnection({
+  datacenterId: 'ca1',
+  oauth: {
+    clientId: process.env.QUALTRICS_CLIENT_ID!,
+    clientSecret: process.env.QUALTRICS_CLIENT_SECRET!,
+    scope: 'read:surveys read:survey_responses',
+  },
+})
+
+const res = await connection.testConnection() // token fetched here
+```
+
+A `bearerToken` passed to an action always bypasses the managed token. Standalone factory actions each keep their own token; to share one between them, pass a context as the second argument:
+
+```ts
+import {
+  createConnectionContext,
+  getDistribution,
+  listDistributions,
+} from '@b-jones-rfd/qualtrics-api-tasks'
+
+const context = createConnectionContext(connectionOptions)
+const getOne = getDistribution(connectionOptions, context)
+const listAll = listDistributions(connectionOptions, context)
+```
+
+If the token cannot be obtained, the action fails with the token request's `code` (usually `AUTH`) and an `error` beginning `Error in <action>: could not obtain a bearer token:`.
+
+#### Retrying transient failures
+
+Set `retry` to retry read actions that fail with `NETWORK`, `TIMEOUT`, or HTTP 429/502/503/504. Writes (`create*`, `start*`) are never retried; the composite workflows (`exportResponses`, `importContacts`, `distributeSurveys`) retry only their read steps.
+
+```ts
+type RetryOptions = {
+  retries?: number // after the first attempt; default 2
+  baseDelayMs?: number // default 200
+  maxDelayMs?: number // default 5000
+  retryOn?: (failure: Failure, attempt: number) => boolean // default isTransientFailure
+}
+```
+
+Delays use exponential backoff with full jitter. When Qualtrics sends `Retry-After` (its rate limiter does on 429), that wait is used instead; if it exceeds `maxDelayMs` the failure is returned immediately with `retryAfterMs` set. An aborted `signal` ends retrying.
 
 ### Actions
 

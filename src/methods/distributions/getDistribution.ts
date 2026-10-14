@@ -7,6 +7,8 @@ import { toFailure } from '../../errors'
 import { segment } from '../../utils'
 import { safeParseGetDistribution } from '../../utils/parsers'
 import { execute } from '../../qualtrics'
+import { createConnectionContext } from '../../context'
+import { withRetry } from '../../retry'
 
 /**
  * Get Distribution
@@ -18,17 +20,19 @@ export const getDistribution: ActionFactory<
   GetDistributionOptions,
   Distribution
 > =
-  (connectionOptions) =>
-  async ({ distributionId, surveyId, ...request }) => {
-    try {
-      const qs = new URLSearchParams({ surveyId })
-      const response = await execute({
-        connectionOptions,
-        request,
-        route: `/API/v3/distributions/${segment(distributionId)}?${qs.toString()}`,
-      })
-      return safeParseGetDistribution(response)
-    } catch (error) {
-      return toFailure('getDistribution', error)
-    }
-  }
+  (connectionOptions, context = createConnectionContext(connectionOptions)) =>
+  async ({ distributionId, surveyId, ...request }) =>
+    withRetry(connectionOptions.retry, request.signal, async () => {
+      try {
+        const qs = new URLSearchParams({ surveyId })
+        const response = await execute({
+          connectionOptions,
+          context,
+          request,
+          route: `/API/v3/distributions/${segment(distributionId)}?${qs.toString()}`,
+        })
+        return safeParseGetDistribution(response)
+      } catch (error) {
+        return toFailure('getDistribution', error)
+      }
+    })

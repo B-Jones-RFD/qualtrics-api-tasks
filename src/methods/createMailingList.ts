@@ -3,6 +3,7 @@ import { toFailure } from '../errors'
 import { segment } from '../utils'
 import { safeParseCreateMailingListResponse } from '../utils/parsers'
 import { execute } from '../qualtrics'
+import { createConnectionContext } from '../context'
 
 /**
  * Create Mailing List
@@ -14,7 +15,7 @@ export const createMailingList: ActionFactory<
   CreateMailingListOptions,
   string
 > =
-  (connectionOptions) =>
+  (connectionOptions, context = createConnectionContext(connectionOptions)) =>
   async ({
     directoryId,
     name,
@@ -25,6 +26,7 @@ export const createMailingList: ActionFactory<
     try {
       const response = await execute({
         connectionOptions,
+        context,
         request,
         route: `/API/v3/directories/${segment(directoryId)}/mailinglists`,
         body: JSON.stringify({ name, ownerId, prioritizeListMetadata }),

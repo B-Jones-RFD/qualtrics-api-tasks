@@ -19,19 +19,22 @@ export async function checkConnection() {
   throw new Error(res.error)
 }
 
-// Using OAuth client credentials and passing the bearer token per call
-export async function listMessages(libraryId: string) {
-  const token = await connection.getBearerToken({
+// Using OAuth client credentials: the connection manages the bearer token
+const oauthConnection = createConnection({
+  datacenterId: 'ca1',
+  oauth: {
     clientId: process.env.QUALTRICS_CLIENT_ID ?? '',
     clientSecret: process.env.QUALTRICS_CLIENT_SECRET ?? '',
     scope: 'read:libraries',
-  })
-  if (!token.success) throw new Error(token.error)
-  const res = await connection.listLibraryMessages({
-    libraryId,
-    bearerToken: token.data,
-  })
+  },
+  retry: { retries: 3 }, // retry reads on 429/5xx and network errors
+})
+
+export async function listMessages(libraryId: string) {
+  const res = await oauthConnection.listLibraryMessages({ libraryId })
   if (res.success) return res.data.elements
+  if (res.code === 'AUTH')
+    throw new Error(`Check the OAuth scope: ${res.error}`)
   throw new Error(res.error)
 }
 

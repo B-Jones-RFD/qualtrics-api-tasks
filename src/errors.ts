@@ -32,6 +32,20 @@ function describeDetails(details: QualtricsError | undefined) {
 }
 
 /**
+ * Thrown by the transport when a managed bearer token could not be obtained.
+ * Carries the underlying {@link Failure} so `toFailure` can surface it.
+ */
+export class ManagedTokenError extends Error {
+  readonly name = 'ManagedTokenError'
+  readonly failure: Failure
+
+  constructor(failure: Failure) {
+    super(failure.error)
+    this.failure = failure
+  }
+}
+
+/**
  * Parses a `Retry-After` header: either delay-seconds or an HTTP date.
  * Returns milliseconds (never negative), or `undefined` when absent/invalid.
  */
@@ -132,6 +146,12 @@ function describe(error: unknown): string {
  * with the action name and classified by {@link FailureCode}.
  */
 export function toFailure(action: string, error: unknown): Failure {
+  if (error instanceof ManagedTokenError) {
+    return {
+      ...error.failure,
+      error: `Error in ${action}: could not obtain a bearer token: ${error.failure.error}`,
+    }
+  }
   const failure: Failure = {
     success: false,
     error: `Error in ${action}: ${describe(error)}`,

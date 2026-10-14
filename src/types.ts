@@ -70,19 +70,76 @@ export type Action<TConfig, TResponse> = (
   options: TConfig
 ) => Promise<Result<TResponse>>
 
-/** Options that bind a connection to one Qualtrics datacenter. */
+/** OAuth 2.0 client-credentials used for a managed bearer token. */
+export type OAuthOptions = {
+  clientId: string
+  clientSecret: string
+  /** Space-separated scopes, e.g. `'read:surveys write:distributions'`. */
+  scope: string
+}
+
+/**
+ * Opt-in retry for read actions. Writes (`create*`, `start*`) are never
+ * retried automatically. Delays use exponential backoff with full jitter:
+ * `random(0, min(maxDelayMs, baseDelayMs * 2^attempt))`. When the server
+ * sent `Retry-After`, that wait is used instead — or retrying stops if it
+ * exceeds `maxDelayMs`.
+ */
+export type RetryOptions = {
+  /** Retries after the first attempt (default 2). */
+  retries?: number
+  /** Base delay in milliseconds (default 200). */
+  baseDelayMs?: number
+  /** Cap on a single delay in milliseconds (default 5000). */
+  maxDelayMs?: number
+  /** Decides whether a failure is retried (default {@link isTransientFailure}). */
+  retryOn?: (failure: Failure, attempt: number) => boolean
+}
+
+/**
+ * Options that bind a connection to one Qualtrics datacenter.
+ *
+ * Authentication, in order of precedence for each request: a `bearerToken`
+ * passed to the action, the managed token from `oauth`, then `apiToken`.
+ */
 export type ConnectionOptions = {
   /** Datacenter id from the Qualtrics account settings, e.g. `'ca1'` or `'fra1'`. */
   datacenterId: string
-  /** API token used when an action is not given a `bearerToken`. */
+  /** API token used when neither a per-call `bearerToken` nor `oauth` applies. */
   apiToken?: string
+  /**
+   * Client credentials for a managed bearer token: fetched on first use,
+   * shared between concurrent calls, refreshed a minute before it expires and
+   * re-fetched once if Qualtrics answers 401.
+   */
+  oauth?: OAuthOptions
   /** Default request timeout in milliseconds (30 000 when omitted). */
   timeout?: number
+  /** Retry transient failures of read actions. Off when omitted. */
+  retry?: RetryOptions
 }
 
-/** Factory that binds an action to {@link ConnectionOptions}. */
+/** Cache of the managed bearer token obtained from {@link ConnectionOptions.oauth}. */
+export type TokenCache = {
+  /** Resolves to a valid token, fetching or refreshing it when needed. */
+  get(request?: RequestOptions): Promise<Result<string>>
+  /** Drops the cached token so the next `get` fetches a fresh one. */
+  invalidate(): void
+}
+
+/** Per-connection state shared by every action bound to it. */
+export type ConnectionContext = {
+  tokens: TokenCache
+}
+
+/**
+ * Factory that binds an action to {@link ConnectionOptions}. The optional
+ * `context` (from {@link createConnectionContext}) lets standalone actions
+ * share one managed bearer token; when omitted the action keeps its own.
+ */
 export type ActionFactory<TParams, TResponse> = (
-  options: ConnectionOptions
+  options: ConnectionOptions,
+  context?: ConnectionContext
 ) => Action<TParams, TResponse>
 
 /**
@@ -191,10 +248,14 @@ export type PagedResponse<T> = {
 // Action options
 // ---------------------------------------------------------------------------
 
-export type GetBearerTokenOptions = Omit<RequestOptions, 'bearerToken'> & {
-  clientId: string
-  clientSecret: string
-  scope: string
+export type GetBearerTokenOptions = Omit<RequestOptions, 'bearerToken'> &
+  OAuthOptions
+
+/** Parsed `/oauth2/token` response. */
+export type BearerTokenResponse = {
+  accessToken: string
+  /** Lifetime in seconds as reported by Qualtrics (3600 when absent). */
+  expiresIn: number
 }
 
 export type CreateMailingListOptions = RequestOptions & {

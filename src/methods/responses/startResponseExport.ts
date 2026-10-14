@@ -7,6 +7,7 @@ import { toFailure } from '../../errors'
 import { segment } from '../../utils'
 import { safeParseStartFileExportResponse } from '../../utils/parsers'
 import { execute } from '../../qualtrics'
+import { createConnectionContext } from '../../context'
 
 /**
  * Start Response Export
@@ -19,7 +20,7 @@ export const startResponseExport: ActionFactory<
   StartResponseExportOptions,
   StartResponseExportResponse
 > =
-  (connectionOptions) =>
+  (connectionOptions, context = createConnectionContext(connectionOptions)) =>
   async ({
     surveyId,
     startDate,
@@ -33,6 +34,7 @@ export const startResponseExport: ActionFactory<
     try {
       const response = await execute({
         connectionOptions,
+        context,
         request: { bearerToken, timeout, signal },
         route: `/API/v3/surveys/${segment(surveyId)}/export-responses`,
         body: JSON.stringify({

@@ -7,6 +7,8 @@ import type {
 import { toFailure } from '../../errors'
 import { safeParseListDistributions } from '../../utils/parsers'
 import { execute } from '../../qualtrics'
+import { createConnectionContext } from '../../context'
+import { withRetry } from '../../retry'
 
 /**
  * List Distributions
@@ -18,7 +20,7 @@ export const listDistributions: ActionFactory<
   ListDistributionsOptions,
   PagedResponse<Distribution>
 > =
-  (connectionOptions) =>
+  (connectionOptions, context = createConnectionContext(connectionOptions)) =>
   async ({
     surveyId,
     distributionRequestType,
@@ -29,28 +31,30 @@ export const listDistributions: ActionFactory<
     useNewPaginationScheme,
     pageSize,
     ...request
-  }) => {
-    try {
-      const qs = new URLSearchParams({
-        surveyId,
-        sendStartDate: sendStartDate.toISOString(),
-        sendEndDate: sendEndDate.toISOString(),
-      })
-      if (mailingListId) qs.append('mailingListId', mailingListId)
-      if (distributionRequestType)
-        qs.append('distributionRequestType', distributionRequestType)
-      if (skipToken) qs.append('skipToken', skipToken)
-      if (useNewPaginationScheme)
-        qs.append('useNewPaginationScheme', useNewPaginationScheme.toString())
-      if (pageSize) qs.append('pageSize', pageSize.toString())
+  }) =>
+    withRetry(connectionOptions.retry, request.signal, async () => {
+      try {
+        const qs = new URLSearchParams({
+          surveyId,
+          sendStartDate: sendStartDate.toISOString(),
+          sendEndDate: sendEndDate.toISOString(),
+        })
+        if (mailingListId) qs.append('mailingListId', mailingListId)
+        if (distributionRequestType)
+          qs.append('distributionRequestType', distributionRequestType)
+        if (skipToken) qs.append('skipToken', skipToken)
+        if (useNewPaginationScheme)
+          qs.append('useNewPaginationScheme', useNewPaginationScheme.toString())
+        if (pageSize) qs.append('pageSize', pageSize.toString())
 
-      const response = await execute({
-        connectionOptions,
-        request,
-        route: `/API/v3/distributions?${qs.toString()}`,
-      })
-      return safeParseListDistributions(response)
-    } catch (error) {
-      return toFailure('listDistributions', error)
-    }
-  }
+        const response = await execute({
+          connectionOptions,
+          context,
+          request,
+          route: `/API/v3/distributions?${qs.toString()}`,
+        })
+        return safeParseListDistributions(response)
+      } catch (error) {
+        return toFailure('listDistributions', error)
+      }
+    })

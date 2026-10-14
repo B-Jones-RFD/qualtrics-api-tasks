@@ -1,5 +1,6 @@
 import type { ConnectionFactory, ConnectionOptions } from './types'
 import * as methods from './methods'
+import { createConnectionContext } from './context'
 
 /**
  * Checks the shape of connection options and throws a `TypeError` describing
@@ -7,7 +8,7 @@ import * as methods from './methods'
  * rather than as an opaque network error on the first request.
  */
 export function validateConnectionOptions(options: ConnectionOptions): void {
-  const { datacenterId, apiToken, timeout } = options
+  const { datacenterId, apiToken, oauth, timeout, retry } = options
   if (typeof datacenterId !== 'string' || datacenterId.length === 0)
     throw new TypeError(
       'ConnectionOptions.datacenterId must be a non-empty string'
@@ -18,6 +19,29 @@ export function validateConnectionOptions(options: ConnectionOptions): void {
     )
   if (apiToken !== undefined && typeof apiToken !== 'string')
     throw new TypeError('ConnectionOptions.apiToken must be a string')
+  if (oauth !== undefined) {
+    if (typeof oauth !== 'object' || oauth === null)
+      throw new TypeError('ConnectionOptions.oauth must be an object')
+    for (const key of ['clientId', 'clientSecret', 'scope'] as const) {
+      if (typeof oauth[key] !== 'string' || oauth[key].length === 0)
+        throw new TypeError(
+          `ConnectionOptions.oauth.${key} must be a non-empty string`
+        )
+    }
+  }
+  if (retry !== undefined) {
+    if (typeof retry !== 'object' || retry === null)
+      throw new TypeError('ConnectionOptions.retry must be an object')
+    for (const key of ['retries', 'baseDelayMs', 'maxDelayMs'] as const) {
+      const value = retry[key]
+      if (value !== undefined && (typeof value !== 'number' || value < 0))
+        throw new TypeError(
+          `ConnectionOptions.retry.${key} must be a non-negative number`
+        )
+    }
+    if (retry.retryOn !== undefined && typeof retry.retryOn !== 'function')
+      throw new TypeError('ConnectionOptions.retry.retryOn must be a function')
+  }
   if (
     timeout !== undefined &&
     (typeof timeout !== 'number' || !Number.isFinite(timeout) || timeout <= 0)
@@ -39,23 +63,30 @@ export function validateConnectionOptions(options: ConnectionOptions): void {
  */
 export const createConnection: ConnectionFactory = (options) => {
   validateConnectionOptions(options)
+  const context = createConnectionContext(options)
   return {
-    createDistribution: methods.createDistribution(options),
-    createMailingList: methods.createMailingList(options),
-    createReminder: methods.createReminder(options),
-    distributeSurveys: methods.distributeSurveys(options),
-    exportResponses: methods.exportResponses(options),
+    createDistribution: methods.createDistribution(options, context),
+    createMailingList: methods.createMailingList(options, context),
+    createReminder: methods.createReminder(options, context),
+    distributeSurveys: methods.distributeSurveys(options, context),
+    exportResponses: methods.exportResponses(options, context),
     getBearerToken: methods.getBearerToken(options),
-    getContactsImportStatus: methods.getContactsImportStatus(options),
-    getContactsImportSummary: methods.getContactsImportSummary(options),
-    getDistribution: methods.getDistribution(options),
-    getResponseExportFile: methods.getResponseExportFile(options),
-    getResponseExportProgress: methods.getResponseExportProgress(options),
-    importContacts: methods.importContacts(options),
-    listDistributions: methods.listDistributions(options),
-    listLibraryMessages: methods.listLibraryMessages(options),
-    startContactsImport: methods.startContactsImport(options),
-    startResponseExport: methods.startResponseExport(options),
-    testConnection: methods.testConnection(options),
+    getContactsImportStatus: methods.getContactsImportStatus(options, context),
+    getContactsImportSummary: methods.getContactsImportSummary(
+      options,
+      context
+    ),
+    getDistribution: methods.getDistribution(options, context),
+    getResponseExportFile: methods.getResponseExportFile(options, context),
+    getResponseExportProgress: methods.getResponseExportProgress(
+      options,
+      context
+    ),
+    importContacts: methods.importContacts(options, context),
+    listDistributions: methods.listDistributions(options, context),
+    listLibraryMessages: methods.listLibraryMessages(options, context),
+    startContactsImport: methods.startContactsImport(options, context),
+    startResponseExport: methods.startResponseExport(options, context),
+    testConnection: methods.testConnection(options, context),
   }
 }

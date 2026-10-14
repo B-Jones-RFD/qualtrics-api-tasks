@@ -1,11 +1,16 @@
-import type { ConnectionOptions, RequestOptions } from '../types'
-import { QualtricsApiError } from '../errors'
-import { getAuthHeaders } from '../utils'
+import type {
+  ConnectionContext,
+  ConnectionOptions,
+  RequestOptions,
+} from '../types'
+import { ManagedTokenError, QualtricsApiError } from '../errors'
 
 const DEFAULT_TIMEOUT_MS = 30 * 1000
 
 type ExecuteConfig = {
   connectionOptions: ConnectionOptions
+  /** Shared caches; needed when `connectionOptions.oauth` is set. */
+  context?: ConnectionContext
   /** Per-call overrides: token, timeout, signal. */
   request?: RequestOptions
   /** Path (and query) relative to the datacenter host. */
@@ -14,6 +19,51 @@ type ExecuteConfig = {
   headers?: Headers
   /** Present → POST. Strings are sent as JSON. */
   body?: string | URLSearchParams
+}
+
+type Auth =
+  | { kind: 'explicit'; headers: Headers }
+  | { kind: 'managed'; token: string }
+  | { kind: 'apiToken'; token: string }
+
+/**
+ * Picks the credentials for a request: an explicit `headers` object, then a
+ * per-call `bearerToken`, then the managed OAuth token, then `apiToken`.
+ */
+async function resolveAuth(config: ExecuteConfig): Promise<Auth> {
+  const { connectionOptions, context } = config
+  const request = config.request ?? {}
+  if (config.headers) return { kind: 'explicit', headers: config.headers }
+  if (request.bearerToken)
+    return {
+      kind: 'explicit',
+      headers: new Headers({ Authorization: `Bearer ${request.bearerToken}` }),
+    }
+  if (connectionOptions.oauth) {
+    if (!context)
+      throw new Error(
+        'A ConnectionContext is required when ConnectionOptions.oauth is set'
+      )
+    const token = await context.tokens.get(request)
+    if (!token.success) throw new ManagedTokenError(token)
+    return { kind: 'managed', token: token.data }
+  }
+  if (connectionOptions.apiToken)
+    return { kind: 'apiToken', token: connectionOptions.apiToken }
+  throw new Error(
+    'Unable to authorize request. Provide a bearerToken, ConnectionOptions.oauth or ConnectionOptions.apiToken.'
+  )
+}
+
+function headersFor(auth: Auth): Headers {
+  switch (auth.kind) {
+    case 'explicit':
+      return new Headers(auth.headers)
+    case 'managed':
+      return new Headers({ Authorization: `Bearer ${auth.token}` })
+    case 'apiToken':
+      return new Headers({ 'X-API-TOKEN': auth.token })
+  }
 }
 
 /**
@@ -55,20 +105,12 @@ function abortError(reason: unknown): Error {
   return error
 }
 
-/**
- * Performs one request against the Qualtrics API. GET when `body` is absent,
- * POST otherwise. Throws a {@link QualtricsApiError} for a non-2xx response,
- * a `TimeoutError` when `timeout` elapses before the whole body has been
- * read, and an `AbortError` when `request.signal` is aborted.
- */
-export async function execute(config: ExecuteConfig): Promise<unknown> {
+/** One HTTP round trip. Throws on non-2xx, timeout or abort. */
+async function send(config: ExecuteConfig, headers: Headers): Promise<unknown> {
   const { connectionOptions, route, body } = config
   const request = config.request ?? {}
   const timeout =
     request.timeout ?? connectionOptions.timeout ?? DEFAULT_TIMEOUT_MS
-  const headers =
-    config.headers ??
-    getAuthHeaders(connectionOptions.apiToken, request.bearerToken)
   const resource = new URL(
     route,
     `https://${connectionOptions.datacenterId}.qualtrics.com`
@@ -120,5 +162,35 @@ export async function execute(config: ExecuteConfig): Promise<unknown> {
   } finally {
     clearTimeout(timer)
     request.signal?.removeEventListener('abort', onAbort)
+  }
+}
+
+/**
+ * Performs one request against the Qualtrics API. GET when `body` is absent,
+ * POST otherwise. Throws a {@link QualtricsApiError} for a non-2xx response,
+ * a `TimeoutError` when `timeout` elapses before the whole body has been
+ * read, an `AbortError` when `request.signal` is aborted, and a
+ * {@link ManagedTokenError} when the managed bearer token cannot be obtained.
+ *
+ * With a managed token, a 401 invalidates the cached token and the request
+ * is sent once more with a fresh one.
+ */
+export async function execute(config: ExecuteConfig): Promise<unknown> {
+  const auth = await resolveAuth(config)
+  try {
+    return await send(config, headersFor(auth))
+  } catch (error) {
+    if (
+      auth.kind === 'managed' &&
+      error instanceof QualtricsApiError &&
+      error.status === 401 &&
+      config.context
+    ) {
+      config.context.tokens.invalidate()
+      const fresh = await config.context.tokens.get(config.request)
+      if (!fresh.success) throw new ManagedTokenError(fresh)
+      return send(config, headersFor({ kind: 'managed', token: fresh.data }))
+    }
+    throw error
   }
 }

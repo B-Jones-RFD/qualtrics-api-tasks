@@ -4,6 +4,7 @@ import { createMailingList } from '../createMailingList'
 import { importContacts } from '../contacts/importContacts'
 import { createDistribution } from './createDistribution'
 import { createReminder } from './createReminder'
+import { createConnectionContext } from '../../context'
 
 /**
  * Distribute Surveys
@@ -13,7 +14,8 @@ import { createReminder } from './createReminder'
  * is the reminder's distribution id.
  */
 export const distributeSurveys: ActionFactory<DistributionOptions, string> =
-  (connectionOptions) => async (options) => {
+  (connectionOptions, context = createConnectionContext(connectionOptions)) =>
+  async (options) => {
     try {
       const request = {
         bearerToken: options.bearerToken,
@@ -22,7 +24,10 @@ export const distributeSurveys: ActionFactory<DistributionOptions, string> =
       }
 
       // Step 1: Create Mailing List
-      const mailingList = await createMailingList(connectionOptions)({
+      const mailingList = await createMailingList(
+        connectionOptions,
+        context
+      )({
         directoryId: options.directoryId,
         name: options.mailingListName,
         ownerId: options.ownerId,
@@ -33,7 +38,10 @@ export const distributeSurveys: ActionFactory<DistributionOptions, string> =
       const mailingListId = mailingList.data
 
       // Step 2: Import Contacts
-      const imported = await importContacts(connectionOptions)({
+      const imported = await importContacts(
+        connectionOptions,
+        context
+      )({
         directoryId: options.directoryId,
         mailingListId,
         contacts: options.contacts,
@@ -43,7 +51,10 @@ export const distributeSurveys: ActionFactory<DistributionOptions, string> =
       if (!imported.success) return imported
 
       // Step 3: Create Distribution
-      const distribution = await createDistribution(connectionOptions)({
+      const distribution = await createDistribution(
+        connectionOptions,
+        context
+      )({
         libraryId: options.libraryId,
         messageId: options.distributionMessageId,
         messageText: options.distributionMessageText,
@@ -63,7 +74,10 @@ export const distributeSurveys: ActionFactory<DistributionOptions, string> =
       if (!distribution.success) return distribution
 
       // Step 4: Create Reminder
-      return await createReminder(connectionOptions)({
+      return await createReminder(
+        connectionOptions,
+        context
+      )({
         distributionId: distribution.data,
         libraryId: options.libraryId,
         messageId: options.reminderMessageId,

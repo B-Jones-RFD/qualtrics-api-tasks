@@ -1,4 +1,5 @@
 import type {
+  BearerTokenResponse,
   ContactsImportStatusResponse,
   ContactsImportSummaryResponse,
   Distribution,
@@ -47,6 +48,18 @@ export function safeParseBearerToken(response: unknown): Result<string> {
   return isRecord(response) && typeof response.access_token === 'string'
     ? success(response.access_token)
     : failure('Incorrect token format')
+}
+
+export function safeParseOAuthToken(
+  response: unknown
+): Result<BearerTokenResponse> {
+  if (!isRecord(response) || typeof response.access_token !== 'string')
+    return failure('Incorrect token format')
+  const expiresIn =
+    typeof response.expires_in === 'number' && response.expires_in > 0
+      ? response.expires_in
+      : 3600
+  return success({ accessToken: response.access_token, expiresIn })
 }
 
 export function safeParseTestResponse(response: unknown): Result<string> {

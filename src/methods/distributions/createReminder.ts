@@ -3,6 +3,7 @@ import { toFailure } from '../../errors'
 import { segment } from '../../utils'
 import { safeParseCreateReminderResponse } from '../../utils/parsers'
 import { execute } from '../../qualtrics'
+import { createConnectionContext } from '../../context'
 
 /**
  * Create Reminder
@@ -11,7 +12,7 @@ import { execute } from '../../qualtrics'
  * @see https://api.qualtrics.com/f4e0d2c4c6a0e-create-reminder-distribution
  */
 export const createReminder: ActionFactory<CreateReminderOptions, string> =
-  (connectionOptions) =>
+  (connectionOptions, context = createConnectionContext(connectionOptions)) =>
   async ({
     distributionId,
     libraryId,
@@ -33,6 +34,7 @@ export const createReminder: ActionFactory<CreateReminderOptions, string> =
       })
       const response = await execute({
         connectionOptions,
+        context,
         request,
         route: `/API/v3/distributions/${segment(distributionId)}/reminders`,
         body,

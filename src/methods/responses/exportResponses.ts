@@ -5,6 +5,7 @@ import { poll } from '../../utils/poll'
 import { startResponseExport } from './startResponseExport'
 import { getResponseExportFile } from './getResponseExportFile'
 import { getResponseExportProgress } from './getResponseExportProgress'
+import { createConnectionContext } from '../../context'
 
 const POLL_INTERVAL_MS = 1000
 const POLL_MAX_ATTEMPTS = 300
@@ -18,19 +19,22 @@ const POLL_MAX_ATTEMPTS = 300
  * @see https://api.qualtrics.com/u9e5lh4172v0v-survey-response-export-guide
  */
 export const exportResponses: ActionFactory<ExportResponsesOptions, Buffer> =
-  (connectionOptions) => async (responseOptions) => {
+  (connectionOptions, context = createConnectionContext(connectionOptions)) =>
+  async (responseOptions) => {
     try {
       const { surveyId, bearerToken, timeout, signal } = responseOptions
       const request = { bearerToken, timeout, signal }
 
       // Step 1
-      const startResponse =
-        await startResponseExport(connectionOptions)(responseOptions)
+      const startResponse = await startResponseExport(
+        connectionOptions,
+        context
+      )(responseOptions)
       if (!startResponse.success) return startResponse
       const exportProgressId = startResponse.data.progressId
 
       // Step 2
-      const getProgress = getResponseExportProgress(connectionOptions)
+      const getProgress = getResponseExportProgress(connectionOptions, context)
       const progressResponse = await poll({
         fn: () => getProgress({ exportProgressId, surveyId, ...request }),
         validate: (res) =>
@@ -57,7 +61,10 @@ export const exportResponses: ActionFactory<ExportResponsesOptions, Buffer> =
         )
 
       // Step 3
-      return await getResponseExportFile(connectionOptions)({
+      return await getResponseExportFile(
+        connectionOptions,
+        context
+      )({
         surveyId,
         fileId: progressResponse.data.fileId,
         ...request,

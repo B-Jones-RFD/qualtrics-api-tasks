@@ -7,6 +7,8 @@ import { toFailure } from '../../errors'
 import { segment } from '../../utils'
 import { safeParseFileProgressResponse } from '../../utils/parsers'
 import { execute } from '../../qualtrics'
+import { createConnectionContext } from '../../context'
+import { withRetry } from '../../retry'
 
 /**
  * Get Response Export Progress
@@ -19,18 +21,20 @@ export const getResponseExportProgress: ActionFactory<
   GetResponseExportProgressOptions,
   FileProgressResponse
 > =
-  (connectionOptions) =>
-  async ({ exportProgressId, surveyId, ...request }) => {
-    try {
-      const response = await execute({
-        connectionOptions,
-        request,
-        route: `/API/v3/surveys/${segment(surveyId)}/export-responses/${segment(
-          exportProgressId
-        )}`,
-      })
-      return safeParseFileProgressResponse(response)
-    } catch (error) {
-      return toFailure('getResponseExportProgress', error)
-    }
-  }
+  (connectionOptions, context = createConnectionContext(connectionOptions)) =>
+  async ({ exportProgressId, surveyId, ...request }) =>
+    withRetry(connectionOptions.retry, request.signal, async () => {
+      try {
+        const response = await execute({
+          connectionOptions,
+          context,
+          request,
+          route: `/API/v3/surveys/${segment(surveyId)}/export-responses/${segment(
+            exportProgressId
+          )}`,
+        })
+        return safeParseFileProgressResponse(response)
+      } catch (error) {
+        return toFailure('getResponseExportProgress', error)
+      }
+    })

@@ -7,6 +7,8 @@ import { toFailure } from '../../errors'
 import { segment } from '../../utils'
 import { safeParseContactsImportStatus } from '../../utils/parsers'
 import { execute } from '../../qualtrics'
+import { createConnectionContext } from '../../context'
+import { withRetry } from '../../retry'
 
 /**
  * Get Contacts Import Status
@@ -19,18 +21,20 @@ export const getContactsImportStatus: ActionFactory<
   GetContactsImportStatusOptions,
   ContactsImportStatusResponse
 > =
-  (connectionOptions) =>
-  async ({ directoryId, importId, mailingListId, ...request }) => {
-    try {
-      const response = await execute({
-        connectionOptions,
-        request,
-        route: `/API/v3/directories/${segment(directoryId)}/mailinglists/${segment(
-          mailingListId
-        )}/transactioncontacts/${segment(importId)}`,
-      })
-      return safeParseContactsImportStatus(response)
-    } catch (error) {
-      return toFailure('getContactsImportStatus', error)
-    }
-  }
+  (connectionOptions, context = createConnectionContext(connectionOptions)) =>
+  async ({ directoryId, importId, mailingListId, ...request }) =>
+    withRetry(connectionOptions.retry, request.signal, async () => {
+      try {
+        const response = await execute({
+          connectionOptions,
+          context,
+          request,
+          route: `/API/v3/directories/${segment(directoryId)}/mailinglists/${segment(
+            mailingListId
+          )}/transactioncontacts/${segment(importId)}`,
+        })
+        return safeParseContactsImportStatus(response)
+      } catch (error) {
+        return toFailure('getContactsImportStatus', error)
+      }
+    })
