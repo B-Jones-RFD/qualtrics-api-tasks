@@ -46,6 +46,7 @@ export const distributeSurveys: ActionFactory<DistributionOptions, string> =
         mailingListId,
         contacts: options.contacts,
         transactionMeta: options.transactionMeta,
+        poll: options.poll,
         ...request,
       })
       if (!imported.success) return imported

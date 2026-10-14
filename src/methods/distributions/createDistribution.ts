@@ -7,7 +7,8 @@ import { createConnectionContext } from '../../context'
 /**
  * Create Distribution
  *
- * Implements Create Distribution
+ * Implements Create Distribution. Recipients are `mailingListId` (optionally
+ * narrowed to `contactId`) or `transactionBatchId`.
  * @see https://api.qualtrics.com/573e3f0a94888-create-distribution
  */
 export const createDistribution: ActionFactory<
@@ -22,6 +23,7 @@ export const createDistribution: ActionFactory<
     mailingListId,
     contactId,
     transactionBatchId,
+    directoryId,
     fromEmail,
     replyToEmail,
     fromName,
@@ -36,7 +38,12 @@ export const createDistribution: ActionFactory<
     try {
       const body = JSON.stringify({
         message: { libraryId, messageId, messageText },
-        recipients: { mailingListId, contactId, transactionBatchId },
+        recipients: {
+          mailingListId,
+          contactId,
+          transactionBatchId,
+          directoryId,
+        },
         header: { fromEmail, replyToEmail, fromName, subject },
         surveyLink: { surveyId, expirationDate, type },
         embeddedData,

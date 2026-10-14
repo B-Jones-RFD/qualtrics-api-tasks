@@ -156,8 +156,21 @@ export type RequestOptions = {
   signal?: AbortSignal
 }
 
+/**
+ * How a workflow action (`importContacts`, `exportResponses`,
+ * `distributeSurveys`) polls an asynchronous Qualtrics job.
+ */
+export type PollOptions = {
+  /** Delay between status checks in milliseconds (default 1000). */
+  intervalMs?: number
+  /** Give up after this many status checks (default 300, i.e. five minutes at the default interval). */
+  maxAttempts?: number
+}
+
+/** Export file format. `json`/`ndjson` reject several formatting options; see {@link StartResponseExportOptions}. */
 export type ResponseFormat = 'csv' | 'json' | 'ndjson' | 'spss' | 'tsv' | 'xml'
 
+/** Kind of distribution, as reported in {@link Distribution.requestType} and filtered by `listDistributions`. */
 export type DistributionRequestType =
   | 'Invite'
   | 'ThankYou'
@@ -167,24 +180,48 @@ export type DistributionRequestType =
   | 'PortalInvite'
   | 'GeneratedInvite'
 
+/** Survey link type for a distribution: one link per contact, reusable, or anonymous. */
 export type SurveyLinkType = 'Individual' | 'Multiple' | 'Anonymous'
 
+/** Value accepted in a contact's `embeddedData` / `transactionData`. */
+export type EmbeddedDataValue = string | number | boolean
+
+/**
+ * One contact in a transaction-contacts import. Every key is optional;
+ * omit a key rather than sending `null`.
+ * @see https://api.qualtrics.com/bab13356ac724-create-transaction-contacts-import
+ */
 export type Contact = {
   firstName?: string
   lastName?: string
-  email: string
+  email?: string
+  phone?: string
+  /** Id of an existing directory contact to update, e.g. `'CID_…'`. */
+  id?: string
+  /** External reference for the contact. */
   extRef?: string
-  embeddedData?: Record<string, string>
+  /** Keys must not appear in {@link TransactionMeta.fields}. */
+  embeddedData?: Record<string, EmbeddedDataValue>
+  /** Preferred language code. */
   language?: string
   unsubscribed?: boolean
-  transactionData?: object
+  /** Keys must appear in {@link TransactionMeta.fields}; requires `transactionMeta` on the import. */
+  transactionData?: Record<string, EmbeddedDataValue>
 }
 
+/** Required on an import whose contacts carry `transactionData`. */
 export type TransactionMeta = {
+  /** Names of the transaction fields; at least one. */
   fields: string[]
+  /** Id of an existing transaction batch (`'BT_…'`) the transactions are added to. */
   batchId: string
 }
 
+/**
+ * A distribution as returned by `getDistribution` / `listDistributions`.
+ * `message.messageText` is no longer populated by List Distributions;
+ * read the message from the library or `getDistribution`.
+ */
 export type Distribution = {
   id: string
   parentDistributionId: string
@@ -232,9 +269,11 @@ export type Distribution = {
   embeddedData: Record<string, string>
 }
 
+/** A message in a library, as listed by `listLibraryMessages`. */
 export type LibraryMessage = {
   id: string
   description: string
+  /** e.g. `invite`, `reminder`, `thankYou`, `endOfSurvey`, `general`. */
   category: string
 }
 
@@ -296,34 +335,46 @@ export type BearerTokenResponse = {
 }
 
 export type CreateMailingListOptions = RequestOptions & {
+  /** Directory (pool) id, `'POOL_…'`. */
   directoryId: string
   name: string
-  ownerId: string
+  /** Owning user or group id; defaults to the caller. */
+  ownerId?: string
+  /** Import mapped embedded data as list metadata instead of contact data. */
   prioritizeListMetadata?: boolean
 }
 
 export type ListLibraryMessagesOptions = RequestOptions & {
   libraryId: string
+  /** Filter by category, e.g. `'invite'`, `'reminder'`, `'thankYou'`. */
   category?: string
+  /** Start position; prefer following `nextPage`. */
   offset?: number
 }
 
 export type GetContactsImportStatusOptions = RequestOptions & {
   directoryId: string
+  /** Import job id returned by `startContactsImport`, `'PGRS_…'`. */
   importId: string
   mailingListId: string
 }
 
+/** @deprecated The summary endpoint is deprecated by Qualtrics; use {@link GetContactsImportStatusOptions}. */
 export type GetContactsImportSummaryOptions = GetContactsImportStatusOptions
 
 export type StartContactsImportOptions = RequestOptions & {
   directoryId: string
   mailingListId: string
+  /** At most 10 000 contacts / 5 MB per import. */
   contacts: Array<Contact>
+  /** Required when any contact carries `transactionData`. */
   transactionMeta?: TransactionMeta
 }
 
-export type ImportContactsOptions = StartContactsImportOptions
+export type ImportContactsOptions = StartContactsImportOptions & {
+  /** Polling cadence for the import job; one check per second for five minutes when omitted. */
+  poll?: PollOptions
+}
 
 export type GetDistributionOptions = RequestOptions & {
   distributionId: string
@@ -332,22 +383,37 @@ export type GetDistributionOptions = RequestOptions & {
 
 export type ListDistributionsOptions = RequestOptions & {
   surveyId: string
-  sendStartDate: Date
-  sendEndDate: Date
+  /** Only distributions sent on or after this date. */
+  sendStartDate?: Date
+  /** Only distributions sent on or before this date. */
+  sendEndDate?: Date
   distributionRequestType?: DistributionRequestType
   mailingListId?: string
+  /** Start position for the string-based pagination (`useNewPaginationScheme`). */
   skipToken?: string
+  /** Opt in to Qualtrics' faster string-based pagination. */
   useNewPaginationScheme?: boolean
+  /** 1–100 (default 100). */
   pageSize?: number
 }
 
+/**
+ * Options for `createDistribution`. Recipients are a mailing list (optionally
+ * narrowed to one `contactId`) or a `transactionBatchId`; supply one or the
+ * other.
+ */
 export type CreateDistributionOptions = RequestOptions & {
   libraryId: string
   messageId: string
   messageText?: string
-  mailingListId: string
+  /** Mailing list or contact group, `'CG_…'`. Required unless `transactionBatchId` is given. */
+  mailingListId?: string
+  /** Send to one contact of the mailing list, `'CGC_…'` / `'MLRP_…'`. */
   contactId?: string
+  /** Send to every contact in a transaction batch, `'BT_…'`; cannot be combined with `contactId`. */
   transactionBatchId?: string
+  /** Directory (pool) id the recipients belong to, `'POOL_…'`. */
+  directoryId?: string
   fromEmail: string
   replyToEmail?: string
   fromName: string
@@ -371,13 +437,17 @@ export type CreateReminderOptions = RequestOptions & {
   embeddedData?: Record<string, string>
 }
 
+/** Options for the `distributeSurveys` workflow. */
 export type DistributionOptions = RequestOptions & {
   directoryId: string
   mailingListName: string
-  ownerId: string
+  /** Owner of the new mailing list; defaults to the caller. */
+  ownerId?: string
   prioritizeListMetadata?: boolean
   contacts: Array<Contact>
   transactionMeta?: TransactionMeta
+  /** Polling cadence for the contacts import. */
+  poll?: PollOptions
   libraryId: string
   distributionMessageId: string
   distributionMessageText?: string
@@ -397,10 +467,21 @@ export type DistributionOptions = RequestOptions & {
   reminderSendDate: Date
 }
 
-export type ExportResponsesOptions = RequestOptions & {
+/**
+ * Options for `startResponseExport` — the Qualtrics export body plus the
+ * survey id. For `json`/`ndjson` Qualtrics rejects `includeDisplayOrder`,
+ * `useLabels`, `formatDecimalAsComma`, `seenUnansweredRecode`,
+ * `multiselectSeenUnansweredRecode`, `timeZone`, `newlineReplacement` and
+ * `breakoutSets`.
+ * @see https://api.qualtrics.com/6b00592b9c013-start-response-export
+ */
+export type StartResponseExportOptions = RequestOptions & {
   surveyId: string
-  startDate: Date
-  endDate: Date
+  /** Only responses recorded (or, with `sortByLastModifiedDate`, modified) on or after this date. */
+  startDate?: Date
+  /** Only responses recorded (or modified) before this date (exclusive). */
+  endDate?: Date
+  /** File format (default `csv`). */
   format?: ResponseFormat
   breakoutSets?: boolean
   compress?: boolean
@@ -417,13 +498,21 @@ export type ExportResponsesOptions = RequestOptions & {
   embeddedDataIds?: string[]
   questionIds?: string[]
   surveyMetadataIds?: string[]
+  /** Token from a previous export; implies `allowContinuation`, which must then be omitted. Expires after a week. */
   continuationToken?: string
+  /** Ask for a `continuationToken` when the export finishes. Cannot be combined with `filterId`. */
   allowContinuation?: boolean
   includeLabelColumns?: boolean
   sortByLastModifiedDate?: boolean
+  /** Include Wave Name / Weight Segment columns when the survey has wave weighting. */
+  includeWaveWeights?: boolean
 }
 
-export type StartResponseExportOptions = ExportResponsesOptions
+/** Options for the `exportResponses` workflows: the export body plus polling cadence. */
+export type ExportResponsesOptions = StartResponseExportOptions & {
+  /** Polling cadence for the export job; one check per second for five minutes when omitted. */
+  poll?: PollOptions
+}
 
 export type GetResponseExportProgressOptions = RequestOptions & {
   exportProgressId: string
@@ -470,14 +559,18 @@ export type FileProgressResponse = {
   error?: ResponseExportJobError
 }
 
+/** `result` of Create Transaction Contacts Import. */
 export type StartContactsImportResponse = {
+  /** Import job id, `'PGRS_…'`. */
   id: string
   contacts: Array<Contact>
   tracking: object
   status: string
 }
 
-export type ContactsImportSummaryResponse = {
+/** `result` of Get Transaction Contacts Import Status. */
+export type ContactsImportStatusResponse = {
+  /** 0–100. */
   percentComplete: number
   contacts: {
     count: {
@@ -486,7 +579,8 @@ export type ContactsImportSummaryResponse = {
       failed: number
     }
   }
-  invalidEmails: string[]
+  /** Malformed addresses that were skipped. */
+  invalidEmails?: string[]
   transactions: {
     count: {
       created: number
@@ -495,21 +589,20 @@ export type ContactsImportSummaryResponse = {
   status: string
 }
 
-export type ContactsImportStatusResponse = {
-  percentComplete: number
-  contacts: {
-    count: {
-      added: number
-      updated: number
-      failed: number
-    }
-  }
-  transactions: {
-    count: {
-      created: number
-    }
-  }
-  status: string
+/**
+ * Final report of a contacts import. Returned by `importContacts` and by
+ * the deprecated `getContactsImportSummary`.
+ */
+export type ContactsImportSummaryResponse = ContactsImportStatusResponse & {
+  invalidEmails: string[]
+}
+
+/** Result of `exportResponsesWithProgress`: the decoded export and the completed progress record. */
+export type ResponseExportResult = {
+  /** The export's contents; see {@link ResponseExportData}. */
+  data: ResponseExportData
+  /** The final progress response, carrying `fileId` and, when requested, `continuationToken`. */
+  progress: FileProgressResponse
 }
 
 // ---------------------------------------------------------------------------
@@ -544,9 +637,11 @@ export type Connection = {
 
   /**
    * Imports contacts into a mailing list end to end: starts the import,
-   * polls its status once a second (up to five minutes) and returns the
-   * summary. Fails with `HTTP` if Qualtrics reports the import failed and
-   * `TIMEOUT` if it does not finish in time.
+   * polls its status (once a second for up to five minutes unless `poll`
+   * says otherwise) and returns the final status, which carries the
+   * added/updated/failed counts and invalid emails. Fails with `HTTP` if
+   * Qualtrics reports the import failed and `TIMEOUT` if it does not finish
+   * in time.
    * @see https://api.qualtrics.com/1ac99fba8ca5b-contact-imports
    */
   importContacts: Action<ImportContactsOptions, ContactsImportSummaryResponse>
@@ -570,7 +665,10 @@ export type Connection = {
   >
 
   /**
-   * Step 3 of a contacts import: counts of added/updated/failed contacts and invalid emails.
+   * Counts of added/updated/failed contacts and invalid emails.
+   * @deprecated Qualtrics deprecated this endpoint (unsupported after
+   * 2026-06-30). {@link Connection.getContactsImportStatus} reports the same
+   * fields; removed in 2.0.
    * @see https://api.qualtrics.com/6f0480b307053-get-transaction-contacts-import-summary
    */
   getContactsImportSummary: Action<
@@ -621,6 +719,8 @@ export type Connection = {
    * Distributes a survey end to end: creates a mailing list, imports the
    * contacts, creates the distribution and schedules a reminder. Resolves to
    * the reminder's distribution id. Each step's failure is returned as-is.
+   * (The mailing list and distribution ids are not returned; run the steps
+   * individually when you need them.)
    */
   distributeSurveys: Action<DistributionOptions, string>
 
@@ -673,8 +773,8 @@ export type Connection = {
 
   /**
    * Exports survey responses end to end: starts the export, polls its
-   * progress once a second (up to five minutes) until `status` is
-   * `'complete'`, downloads the file and decodes it. Resolves to the
+   * progress (once a second for up to five minutes unless `poll` says
+   * otherwise) until `status` is `'complete'`, downloads the file and decodes it. Resolves to the
    * export's contents — a UTF-8 string for the text formats, a `Buffer` for
    * `spss` — whether or not Qualtrics compressed it. Fails with `HTTP` if
    * Qualtrics reports the export failed (the job's error code and message
@@ -683,6 +783,20 @@ export type Connection = {
    * @see https://api.qualtrics.com/u9e5lh4172v0v-survey-response-export-guide
    */
   exportResponses: Action<ExportResponsesOptions, ResponseExportData>
+
+  /**
+   * Same workflow as {@link Connection.exportResponses}, resolving to the
+   * decoded contents together with the final progress record, so the
+   * `continuationToken` of an export started with `allowContinuation` (or a
+   * previous token) can be kept for the next incremental export.
+   * @example
+   * const res = await connection.exportResponsesWithProgress({ surveyId, allowContinuation: true })
+   * if (res.success) save(res.data.progress.continuationToken)
+   */
+  exportResponsesWithProgress: Action<
+    ExportResponsesOptions,
+    ResponseExportResult
+  >
 
   /** @deprecated Alias of {@link Connection.exportResponses}; removed in 2.0. */
   exportResponseData: Action<ExportResponsesOptions, ResponseExportData>

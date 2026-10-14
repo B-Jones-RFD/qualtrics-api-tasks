@@ -12,14 +12,18 @@ function stubExport(
     error?: { code: string; message: string; context?: Record<string, unknown> }
     /** Serve the file uncompressed as JSON with a JSON content type. */
     jsonFile?: boolean
+    /** Add a continuationToken to the completed progress response. */
+    continuationToken?: string
   } = {}
 ) {
   const seen: string[] = []
+  const bodies: unknown[] = []
   let progressCalls = 0
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: URL, init: RequestInit) => {
       seen.push(`${init.method} ${url.pathname}`)
+      if (typeof init.body === 'string') bodies.push(JSON.parse(init.body))
       if (url.pathname.endsWith('/export-responses'))
         return Response.json({
           result: {
@@ -40,6 +44,9 @@ function stubExport(
             ...(status === 'failed' && options.error
               ? { error: options.error }
               : {}),
+            ...(status === 'complete' && options.continuationToken
+              ? { continuationToken: options.continuationToken }
+              : {}),
           },
         })
       }
@@ -56,7 +63,7 @@ function stubExport(
       return new Response('not found', { status: 404 })
     })
   )
-  return seen
+  return { seen, bodies }
 }
 
 const options = {
@@ -72,7 +79,7 @@ afterEach(() => {
 
 describe('exportResponses', () => {
   it('runs the three steps and returns the decoded CSV', async () => {
-    const seen = stubExport()
+    const { seen } = stubExport()
     const connection = createConnection({ datacenterId: 'ca1', apiToken: 'a' })
     const res = await connection.exportResponses(options)
     expect(res).toStrictEqual({ success: true, data: 'a,b\n1,2\n' })
@@ -85,7 +92,7 @@ describe('exportResponses', () => {
 
   it('polls once a second until complete', async () => {
     vi.useFakeTimers()
-    const seen = stubExport({ polls: 3 })
+    const { seen } = stubExport({ polls: 3 })
     const connection = createConnection({ datacenterId: 'ca1', apiToken: 'a' })
     const pending = connection.exportResponses(options)
     await vi.advanceTimersByTimeAsync(2000)
@@ -96,7 +103,7 @@ describe('exportResponses', () => {
 
   it('waits for status complete even when percentComplete reaches 100 early', async () => {
     vi.useFakeTimers()
-    const seen = stubExport({ polls: 3, earlyHundred: true })
+    const { seen } = stubExport({ polls: 3, earlyHundred: true })
     const connection = createConnection({ datacenterId: 'ca1', apiToken: 'a' })
     const pending = connection.exportResponses(options)
     await vi.advanceTimersByTimeAsync(2000)
@@ -150,8 +157,74 @@ describe('exportResponses', () => {
     expect(raw.success && Buffer.isBuffer(raw.data)).toBe(true)
   })
 
+  it('sends only the export body (no poll options) and omits absent dates', async () => {
+    const { bodies } = stubExport()
+    const connection = createConnection({ datacenterId: 'ca1', apiToken: 'a' })
+    const res = await connection.exportResponses({
+      surveyId: 'SV_1',
+      format: 'ndjson',
+      allowContinuation: true,
+      includeWaveWeights: true,
+      poll: { intervalMs: 5, maxAttempts: 2 },
+    })
+    expect(res.success).toBe(true)
+    expect(bodies[0]).toStrictEqual({
+      format: 'ndjson',
+      allowContinuation: true,
+      includeWaveWeights: true,
+    })
+  })
+
+  it('honours per-call poll options and reports TIMEOUT with them', async () => {
+    vi.useFakeTimers()
+    const { seen } = stubExport({ polls: 10 })
+    const connection = createConnection({ datacenterId: 'ca1', apiToken: 'a' })
+    const pending = connection.exportResponses({
+      ...options,
+      poll: { intervalMs: 100, maxAttempts: 3 },
+    })
+    await vi.advanceTimersByTimeAsync(1000)
+    const res = await pending
+    expect(res.success).toBe(false)
+    if (!res.success) {
+      expect(res.code).toBe('TIMEOUT')
+      expect(res.error).toMatch(/did not complete within 0.3 seconds/)
+    }
+    expect(seen.filter((s) => s.endsWith('/p1'))).toHaveLength(3)
+  })
+
+  it('exportResponsesWithProgress returns the data with the final progress record', async () => {
+    stubExport({ continuationToken: 'tok-1' })
+    const connection = createConnection({ datacenterId: 'ca1', apiToken: 'a' })
+    const res = await connection.exportResponsesWithProgress({
+      ...options,
+      allowContinuation: true,
+    })
+    expect(res).toStrictEqual({
+      success: true,
+      data: {
+        data: 'a,b\n1,2\n',
+        progress: {
+          fileId: 'f1',
+          percentComplete: 100,
+          status: 'complete',
+          continuationToken: 'tok-1',
+        },
+      },
+    })
+  })
+
+  it('exportResponsesWithProgress names itself in failures', async () => {
+    stubExport({ status: 'failed' })
+    const connection = createConnection({ datacenterId: 'ca1', apiToken: 'a' })
+    const res = await connection.exportResponsesWithProgress(options)
+    expect(res.success).toBe(false)
+    if (!res.success)
+      expect(res.error).toMatch(/^Error in exportResponsesWithProgress:/)
+  })
+
   it('fails fast when Qualtrics reports the export failed', async () => {
-    const seen = stubExport({ status: 'failed' })
+    const { seen } = stubExport({ status: 'failed' })
     const connection = createConnection({ datacenterId: 'ca1', apiToken: 'a' })
     const res = await connection.exportResponses(options)
     expect(res.success).toBe(false)

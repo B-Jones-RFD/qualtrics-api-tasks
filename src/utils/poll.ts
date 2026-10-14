@@ -1,3 +1,27 @@
+import type { PollOptions } from '../types'
+
+export const DEFAULT_POLL_INTERVAL_MS = 1000
+export const DEFAULT_POLL_MAX_ATTEMPTS = 300
+
+/** Applies defaults to caller-supplied {@link PollOptions}. */
+export function resolvePoll(options: PollOptions | undefined): {
+  intervalMs: number
+  maxAttempts: number
+} {
+  const intervalMs = options?.intervalMs ?? DEFAULT_POLL_INTERVAL_MS
+  const maxAttempts = options?.maxAttempts ?? DEFAULT_POLL_MAX_ATTEMPTS
+  return {
+    intervalMs:
+      Number.isFinite(intervalMs) && intervalMs >= 0
+        ? intervalMs
+        : DEFAULT_POLL_INTERVAL_MS,
+    maxAttempts:
+      Number.isFinite(maxAttempts) && maxAttempts >= 1
+        ? Math.floor(maxAttempts)
+        : DEFAULT_POLL_MAX_ATTEMPTS,
+  }
+}
+
 type PollProps<TResult> = {
   /** Performs one attempt. */
   fn: () => Promise<TResult>

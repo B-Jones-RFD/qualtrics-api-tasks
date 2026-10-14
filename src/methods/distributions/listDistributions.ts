@@ -34,11 +34,10 @@ export const listDistributions: ActionFactory<
   }) =>
     withRetry(connectionOptions.retry, request.signal, async () => {
       try {
-        const qs = new URLSearchParams({
-          surveyId,
-          sendStartDate: sendStartDate.toISOString(),
-          sendEndDate: sendEndDate.toISOString(),
-        })
+        const qs = new URLSearchParams({ surveyId })
+        if (sendStartDate)
+          qs.append('sendStartDate', sendStartDate.toISOString())
+        if (sendEndDate) qs.append('sendEndDate', sendEndDate.toISOString())
         if (mailingListId) qs.append('mailingListId', mailingListId)
         if (distributionRequestType)
           qs.append('distributionRequestType', distributionRequestType)

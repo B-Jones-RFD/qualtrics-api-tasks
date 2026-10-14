@@ -5,20 +5,19 @@ import type {
 } from '../../types'
 import { toFailure } from '../../errors'
 import { failure, isFailedStatus } from '../../utils'
-import { poll } from '../../utils/poll'
+import { poll, resolvePoll } from '../../utils/poll'
 import { startContactsImport } from './startContactsImport'
 import { getContactsImportStatus } from './getContactsImportStatus'
-import { getContactsImportSummary } from './getContactsImportSummary'
 import { createConnectionContext } from '../../context'
-
-const POLL_INTERVAL_MS = 1000
-const POLL_MAX_ATTEMPTS = 300
 
 /**
  * Import Contacts
  *
- * Implements import contacts end to end: starts the import, polls its status
- * once a second (up to five minutes) and returns the import summary.
+ * Implements import contacts end to end: starts the import and polls its
+ * status (once a second for up to five minutes unless `poll` says otherwise)
+ * until it completes. The data is the final status response, which carries
+ * the added/updated/failed counts and invalid emails. The deprecated summary
+ * endpoint is no longer called.
  * @see https://api.qualtrics.com/1ac99fba8ca5b-contact-imports
  */
 export const importContacts: ActionFactory<
@@ -26,11 +25,12 @@ export const importContacts: ActionFactory<
   ContactsImportSummaryResponse
 > =
   (connectionOptions, context = createConnectionContext(connectionOptions)) =>
-  async (importOptions) => {
+  async ({ poll: pollOptions, ...importOptions }) => {
     try {
       const { directoryId, mailingListId, bearerToken, timeout, signal } =
         importOptions
       const request = { bearerToken, timeout, signal }
+      const { intervalMs, maxAttempts } = resolvePoll(pollOptions)
 
       // Step 1
       const startResponse = await startContactsImport(
@@ -49,35 +49,30 @@ export const importContacts: ActionFactory<
           !res.success ||
           res.data.percentComplete === 100 ||
           isFailedStatus(res.data.status),
-        intervalMs: POLL_INTERVAL_MS,
-        maxAttempts: POLL_MAX_ATTEMPTS,
+        intervalMs,
+        maxAttempts,
       })
       if (!progressResponse.success) return progressResponse
-      if (isFailedStatus(progressResponse.data.status))
+      const status = progressResponse.data
+      if (isFailedStatus(status.status))
         return failure(
-          `Error in importContacts: import failed with status '${progressResponse.data.status}'`,
+          `Error in importContacts: import failed with status '${status.status}'`,
           'HTTP'
         )
-      if (progressResponse.data.percentComplete !== 100)
+      if (status.percentComplete !== 100)
         return failure(
           `Error in importContacts: import did not complete within ${
-            (POLL_INTERVAL_MS * POLL_MAX_ATTEMPTS) / 1000
-          } seconds (status '${progressResponse.data.status}', ${
-            progressResponse.data.percentComplete
+            (intervalMs * maxAttempts) / 1000
+          } seconds (status '${status.status}', ${
+            status.percentComplete
           }% complete)`,
           'TIMEOUT'
         )
 
-      // Step 3
-      return await getContactsImportSummary(
-        connectionOptions,
-        context
-      )({
-        directoryId,
-        importId,
-        mailingListId,
-        ...request,
-      })
+      return {
+        success: true,
+        data: { ...status, invalidEmails: status.invalidEmails ?? [] },
+      }
     } catch (error) {
       return toFailure('importContacts', error)
     }

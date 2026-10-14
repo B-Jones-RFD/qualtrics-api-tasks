@@ -38,8 +38,8 @@ export const startResponseExport: ActionFactory<
         request: { bearerToken, timeout, signal },
         route: `/API/v3/surveys/${segment(surveyId)}/export-responses`,
         body: JSON.stringify({
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString(),
+          startDate: startDate?.toISOString(),
+          endDate: endDate?.toISOString(),
           format,
           ...rest,
         }),

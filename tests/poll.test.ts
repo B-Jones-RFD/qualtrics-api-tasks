@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { poll } from '../src/utils/poll'
+import { poll, resolvePoll } from '../src/utils/poll'
 
 afterEach(() => {
   vi.useRealTimers()
@@ -58,5 +58,22 @@ describe('poll', () => {
         maxAttempts: 3,
       })
     ).rejects.toThrow('boom')
+  })
+})
+
+describe('resolvePoll', () => {
+  it('applies defaults and rejects nonsense', () => {
+    expect(resolvePoll(undefined)).toStrictEqual({
+      intervalMs: 1000,
+      maxAttempts: 300,
+    })
+    expect(resolvePoll({ intervalMs: 250, maxAttempts: 2.9 })).toStrictEqual({
+      intervalMs: 250,
+      maxAttempts: 2,
+    })
+    expect(resolvePoll({ intervalMs: -1, maxAttempts: 0 })).toStrictEqual({
+      intervalMs: 1000,
+      maxAttempts: 300,
+    })
   })
 })

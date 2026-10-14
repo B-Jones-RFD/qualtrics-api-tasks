@@ -2,7 +2,10 @@ export { createDistribution } from './distributions/createDistribution'
 export { createMailingList } from './createMailingList'
 export { createReminder } from './distributions/createReminder'
 export { distributeSurveys } from './distributions/distributeSurveys'
-export { exportResponses } from './responses/exportResponses'
+export {
+  exportResponses,
+  exportResponsesWithProgress,
+} from './responses/exportResponses'
 export { getBearerToken } from './getBearerToken'
 export { getContactsImportStatus } from './contacts/getContactsImportStatus'
 export { getContactsImportSummary } from './contacts/getContactsImportSummary'

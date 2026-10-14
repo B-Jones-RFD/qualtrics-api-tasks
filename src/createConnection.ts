@@ -70,6 +70,10 @@ export const createConnection: ConnectionFactory = (options) => {
     createReminder: methods.createReminder(options, context),
     distributeSurveys: methods.distributeSurveys(options, context),
     exportResponses: methods.exportResponses(options, context),
+    exportResponsesWithProgress: methods.exportResponsesWithProgress(
+      options,
+      context
+    ),
     exportResponseData: methods.exportResponseData(options, context),
     getBearerToken: methods.getBearerToken(options),
     getContactsImportStatus: methods.getContactsImportStatus(options, context),

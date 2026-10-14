@@ -252,6 +252,19 @@ if (first.success && first.data.nextPage) {
 
 `exportResponses` runs the whole [export workflow](https://api.qualtrics.com/u9e5lh4172v0v-survey-response-export-guide) — start, poll once a second for up to five minutes, download — and returns the decoded contents: a string for `csv`/`tsv`/`json`/`ndjson`/`xml`, a `Buffer` for `spss`. If Qualtrics reports the export failed the result is an `HTTP` failure; if it does not finish in time, `TIMEOUT`.
 
+`exportResponsesWithProgress` runs the same workflow and resolves to `{ data, progress }`, where `progress` is the final progress record. Use it for incremental exports: start with `allowContinuation: true`, keep `progress.continuationToken`, and pass it as `continuationToken` next time to receive only the responses recorded (or, with `sortByLastModifiedDate`, modified) since.
+
+```ts
+const first = await connection.exportResponsesWithProgress({
+  surveyId,
+  format: 'json',
+  allowContinuation: true,
+})
+if (first.success) saveToken(first.data.progress.continuationToken)
+```
+
+Both workflows, and `importContacts` / `distributeSurveys`, accept `poll: { intervalMs, maxAttempts }` to change the one-second / five-minute polling defaults for that call.
+
 For the raw file, run the three steps yourself (`startResponseExport`, `getResponseExportProgress`, `getResponseExportFile`) and, if you want, decode it with the exported `decodeResponseExport(file, format)`.
 
 ## API
@@ -344,6 +357,8 @@ Implements [Get Contacts Import Status](https://api.qualtrics.com/c5d22705b1d45-
 
 ##### getContactsImportSummary(options)
 
+> **Deprecated.** Qualtrics has deprecated this endpoint (unsupported after 2026-06-30). `getContactsImportStatus` returns the same fields, including `invalidEmails`. This action will be removed in 2.0.
+
 Implements [Get Contacts Import Summary](https://api.qualtrics.com/6f0480b307053-get-transaction-contacts-import-summary)
 
 `options`
@@ -359,17 +374,34 @@ Implements [Get Contacts Import Summary](https://api.qualtrics.com/6f0480b307053
 Implements [Contact Import](https://api.qualtrics.com/1ac99fba8ca5b-contact-imports) multistep process. This runs the following actions:
 
 1. [Start Contacts Import](#startcontactsimportoptions)
-2. Polls [Get Contacts Import Status](#getcontactsimportstatusoptions)
-3. [Get Contacts Import Summary](#getcontactsimportsummaryoptions)
+2. Polls [Get Contacts Import Status](#getcontactsimportstatusoptions) until `percentComplete` is 100
+
+Resolves to the final status: `contacts.count` (added/updated/failed), `transactions.count`, `invalidEmails` and `status`. (Up to 0.x this called the now-deprecated summary endpoint; the data shape is unchanged.)
 
 `options`
 
-| Property        | Type      | Description            | Required |
-| --------------- | --------- | ---------------------- | -------- |
-| directoryId     | string    | Qualtrics Directory ID | Y        |
-| mailingListId   | string    | Mailing List ID        | Y        |
-| contacts        | Contact[] | Contacts array         | Y        |
-| transactionMeta | object    | Transaction meta data  | N        |
+| Property        | Type        | Description                                          | Required |
+| --------------- | ----------- | ---------------------------------------------------- | -------- |
+| directoryId     | string      | Qualtrics Directory ID                               | Y        |
+| mailingListId   | string      | Mailing List ID                                      | Y        |
+| contacts        | Contact[]   | Contacts array (≤ 10 000, ≤ 5 MB)                    | Y        |
+| transactionMeta | object      | `{ fields, batchId }`; required with transactionData | N        |
+| poll            | PollOptions | `{ intervalMs?, maxAttempts? }` (1000 ms / 300)      | N        |
+
+`Contact` — every key is optional; omit keys rather than sending `null`:
+
+| Property        | Type                                        | Description                                  |
+| --------------- | ------------------------------------------- | -------------------------------------------- |
+| firstName       | string                                      |                                              |
+| lastName        | string                                      |                                              |
+| email           | string                                      |                                              |
+| phone           | string                                      |                                              |
+| id              | string                                      | Existing directory contact to update (CID\_) |
+| extRef          | string                                      | External reference                           |
+| language        | string                                      |                                              |
+| unsubscribed    | boolean                                     |                                              |
+| embeddedData    | Record<string, string \| number \| boolean> | Keys must not be in `transactionMeta.fields` |
+| transactionData | Record<string, string \| number \| boolean> | Keys must be in `transactionMeta.fields`     |
 
 ##### startContactsImport(options)
 
@@ -392,23 +424,24 @@ Implements [Create Distribution](https://api.qualtrics.com/573e3f0a94888-create-
 
 `options`
 
-| Property           | Type                   | Description                        | Required | Default |
-| ------------------ | ---------------------- | ---------------------------------- | -------- | ------- |
-| libraryId          | string                 | Qualtrics Library ID               | Y        |         |
-| messageId          | string                 | Qualtrics Message ID               | Y        |         |
-| messageText        | string                 | Message text to send               | N        |         |
-| mailingListId      | string                 | Mailing List ID                    | Y        |         |
-| contactId          | string                 | Contact lookup ID for individual   | N        |         |
-| transactionBatchId | string                 | Transaction Batch ID               | N        |         |
-| fromEmail          | string                 | Originating email                  | Y        |         |
-| replyToEmail       | string                 | Email reply-to address             | N        |         |
-| fromName           | string                 | Email from name                    | Y        |         |
-| subject            | string                 | Email subject                      | Y        |         |
-| surveyId           | string                 | Qualtrics Survey ID                | Y        |         |
-| expirationDate     | Date                   | Distribution expiration date time  | Y        |         |
-| type               | enum                   | Individual, Multiple, or Anonymous | Y        |         |
-| embeddedData       | Record<string, string> | Up to 10 subkeys                   | N        |         |
-| sendDate           | Date                   | Date time to send                  | Y        |         |
+| Property           | Type                   | Description                             | Required | Default |
+| ------------------ | ---------------------- | --------------------------------------- | -------- | ------- |
+| libraryId          | string                 | Qualtrics Library ID                    | Y        |         |
+| messageId          | string                 | Qualtrics Message ID                    | Y        |         |
+| messageText        | string                 | Message text to send                    | N        |         |
+| mailingListId      | string                 | Mailing List ID (or transactionBatchId) | N        |         |
+| contactId          | string                 | Contact lookup ID for individual        | N        |         |
+| transactionBatchId | string                 | Transaction Batch ID (or mailingListId) | N        |         |
+| directoryId        | string                 | Directory (pool) ID of the recipients   | N        |         |
+| fromEmail          | string                 | Originating email                       | Y        |         |
+| replyToEmail       | string                 | Email reply-to address                  | N        |         |
+| fromName           | string                 | Email from name                         | Y        |         |
+| subject            | string                 | Email subject                           | Y        |         |
+| surveyId           | string                 | Qualtrics Survey ID                     | Y        |         |
+| expirationDate     | Date                   | Distribution expiration date time       | Y        |         |
+| type               | enum                   | Individual, Multiple, or Anonymous      | Y        |         |
+| embeddedData       | Record<string, string> | Up to 10 subkeys                        | N        |         |
+| sendDate           | Date                   | Date time to send                       | Y        |         |
 
 ##### createReminder(options)
 
@@ -443,10 +476,11 @@ Multistep process to execute a survey distribution. Runs the following actions:
 | ----------------------- | ---------------------- | ---------------------------------- | -------- | ------- |
 | directoryId             | string                 | Qualtrics Directory ID             | Y        |         |
 | mailingListName         | string                 | Mailing List Name                  | Y        |         |
-| ownerId                 | string                 | Owner ID                           | Y        |         |
+| ownerId                 | string                 | Owner ID (defaults to the caller)  | N        |         |
 | prioritizeListMetadata  | boolean                | Import metadata as list metadata   | N        | false   |
 | contacts                | Contact[]              | Contacts array                     | Y        |         |
 | transactionMeta         | object                 | Transaction meta data              | N        |         |
+| poll                    | PollOptions            | Polling cadence for the import     | N        |         |
 | libraryId               | string                 | Qualtrics Library ID               | Y        |         |
 | distributionMessageId   | string                 | Distribution Message ID            | Y        |         |
 | distributionMessageText | string                 | Message text to send               | N        |         |
@@ -485,8 +519,8 @@ Implements [List Distributions](https://api.qualtrics.com/234bb6b16cf6d-list-dis
 | Property                | Type    | Description                     | Required | Default |
 | ----------------------- | ------- | ------------------------------- | -------- | ------- |
 | surveyId                | string  | Qualtrics Survey ID             | Y        |         |
-| sendStartDate           | Date    | Export start date and time      | Y        |         |
-| sendEndDate             | Date    | Export end date and time        | Y        |         |
+| sendStartDate           | Date    | Earliest send date              | N        |         |
+| sendEndDate             | Date    | Latest send date                | N        |         |
 | mailingListId           | string  | Mailing List ID                 | N        |         |
 | distributionRequestType | string  | Distribution Request Type       | N        |         |
 | skipToken               | string  | Pagination offset               | N        |         |
@@ -539,8 +573,8 @@ If Qualtrics reports the export `failed`, the result is an `HTTP` failure whose 
 | Property                        | Type     | Description                                 | Required | Default |
 | ------------------------------- | -------- | ------------------------------------------- | -------- | ------- |
 | surveyId                        | string   | Qualtrics Survey ID                         | Y        |         |
-| startDate                       | Date     | Export start date and time                  | Y        |         |
-| endDate                         | Date     | Export end date and time                    | Y        |         |
+| startDate                       | Date     | Responses recorded on/after (inclusive)     | N        | 1970    |
+| endDate                         | Date     | Responses recorded before (exclusive)       | N        | 2100    |
 | format                          | Enum     | File format                                 | N        | 'csv'   |
 | breakoutSets                    | boolean  | Split multi-value fields into columns       | N        | true    |
 | compress                        | boolean  | Compress final export                       | N        | true    |
@@ -561,6 +595,12 @@ If Qualtrics reports the export `failed`, the result is an `HTTP` failure whose 
 | allowContinuation               | boolean  | Request continuation token                  | N        | false   |
 | includeLabelColumns             | boolean  | Export two columns, recode and labels       | N        | false   |
 | sortByLastModifiedDate          | boolean  | Sort responses by modified date             | N        | false   |
+| includeWaveWeights              | boolean  | Include wave weighting columns              | N        | false   |
+| poll                            | object   | `{ intervalMs?, maxAttempts? }`             | N        |         |
+
+##### exportResponsesWithProgress(options)
+
+Same options and workflow as [exportResponses](#exportresponsesoptions); resolves to `{ data, progress }` where `progress` is the final [Get Response Export Progress](#getresponseexportprogressoptions) record (`fileId`, `continuationToken` when requested). See [Response exports](#response-exports).
 
 ##### decodeResponseExport(file, format)
 
@@ -597,8 +637,8 @@ Implements [Start Response Exports](https://api.qualtrics.com/6b00592b9c013-star
 | Property                        | Type     | Description                                 | Required | Default |
 | ------------------------------- | -------- | ------------------------------------------- | -------- | ------- |
 | surveyId                        | string   | Qualtrics Survey ID                         | Y        |         |
-| startDate                       | Date     | Export start date and time                  | Y        |         |
-| endDate                         | Date     | Export end date and time                    | Y        |         |
+| startDate                       | Date     | Responses recorded on/after (inclusive)     | N        | 1970    |
+| endDate                         | Date     | Responses recorded before (exclusive)       | N        | 2100    |
 | format                          | Enum     | File format                                 | N        | 'csv'   |
 | breakoutSets                    | boolean  | Split multi-value fields into columns       | N        | true    |
 | compress                        | boolean  | Compress final export                       | N        | true    |
@@ -619,6 +659,7 @@ Implements [Start Response Exports](https://api.qualtrics.com/6b00592b9c013-star
 | allowContinuation               | boolean  | Request continuation token                  | N        | false   |
 | includeLabelColumns             | boolean  | Export two columns, recode and labels       | N        | false   |
 | sortByLastModifiedDate          | boolean  | Sort responses by modified date             | N        | false   |
+| includeWaveWeights              | boolean  | Include wave weighting columns              | N        | false   |
 
 #### Mailing Lists
 
@@ -628,12 +669,12 @@ Implements [Create Mailing List](https://api.qualtrics.com/3f633e4cea6cd-create-
 
 `options`
 
-| Property               | Type    | Description                      | Required | Default |
-| ---------------------- | ------- | -------------------------------- | -------- | ------- |
-| directoryId            | string  | Qualtrics Directory ID           | Y        |         |
-| name                   | string  | Mailing List Name                | Y        |         |
-| ownerId                | string  | Owner ID                         | Y        |         |
-| prioritizeListMetadata | boolean | Import metadata as list metadata | N        | false   |
+| Property               | Type    | Description                       | Required | Default |
+| ---------------------- | ------- | --------------------------------- | -------- | ------- |
+| directoryId            | string  | Qualtrics Directory ID            | Y        |         |
+| name                   | string  | Mailing List Name                 | Y        |         |
+| ownerId                | string  | Owner ID (defaults to the caller) | N        |         |
+| prioritizeListMetadata | boolean | Import metadata as list metadata  | N        | false   |
 
 #### Messages
 

@@ -13,8 +13,10 @@ import { withRetry } from '../../retry'
 /**
  * Get Contacts Import Summary
  *
- * Implements Get Transaction Contacts Import Summary. This is step 3 in the
- * contacts import process.
+ * Implements Get Transaction Contacts Import Summary.
+ * @deprecated Qualtrics deprecated this endpoint (unsupported after
+ * 2026-06-30); {@link getContactsImportStatus} reports the same fields.
+ * Removed in 2.0.
  * @see https://api.qualtrics.com/6f0480b307053-get-transaction-contacts-import-summary
  */
 export const getContactsImportSummary: ActionFactory<

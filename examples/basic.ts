@@ -48,6 +48,32 @@ export async function exportLastWeek(surveyId: string) {
   throw new Error(res.error)
 }
 
+// Incremental export: keep the continuation token between runs
+export async function exportSince(surveyId: string, token?: string) {
+  const res = await connection.exportResponsesWithProgress({
+    surveyId,
+    format: 'json',
+    ...(token ? { continuationToken: token } : { allowContinuation: true }),
+    poll: { intervalMs: 2000, maxAttempts: 150 },
+  })
+  if (!res.success) throw new Error(res.error)
+  return {
+    json: res.data.data as string,
+    token: res.data.progress.continuationToken,
+  }
+}
+
+// Contacts import: the final status carries counts and invalid emails
+export async function addContacts(directoryId: string, mailingListId: string) {
+  const res = await connection.importContacts({
+    directoryId,
+    mailingListId,
+    contacts: [{ email: 'a@example.com', embeddedData: { tier: 2 } }],
+  })
+  if (!res.success) throw new Error(res.error)
+  return res.data.contacts.count
+}
+
 // Paging: every distribution sent this year, one page per request
 export async function* distributionIds(surveyId: string) {
   const sendStartDate = new Date(new Date().getFullYear(), 0, 1)
