@@ -15,7 +15,7 @@ import { withRetry } from '../../retry'
  *
  * Implements Get Transaction Contacts Import Summary. This is step 3 in the
  * contacts import process.
- * @see https://api.qualtrics.com/1ac99fba8ca5b-contact-imports
+ * @see https://api.qualtrics.com/6f0480b307053-get-transaction-contacts-import-summary
  */
 export const getContactsImportSummary: ActionFactory<
   GetContactsImportSummaryOptions,

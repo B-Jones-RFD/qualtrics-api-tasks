@@ -29,6 +29,7 @@ export const getResponseExportFile: ActionFactory<
           route: `/API/v3/surveys/${segment(surveyId)}/export-responses/${segment(
             fileId
           )}/file`,
+          raw: true,
         })
         return safeParseFile(response)
       } catch (error) {

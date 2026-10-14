@@ -9,7 +9,7 @@ import { createConnectionContext } from '../../context'
  * Create Reminder
  *
  * Implements Create Reminder Distribution
- * @see https://api.qualtrics.com/f4e0d2c4c6a0e-create-reminder-distribution
+ * @see https://api.qualtrics.com/764630bb0633a-create-reminder-distribution
  */
 export const createReminder: ActionFactory<CreateReminderOptions, string> =
   (connectionOptions, context = createConnectionContext(connectionOptions)) =>

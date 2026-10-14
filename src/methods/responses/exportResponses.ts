@@ -49,23 +49,36 @@ export const exportResponses: ActionFactory<
         fn: () => getProgress({ exportProgressId, surveyId, ...request }),
         validate: (res) =>
           !res.success ||
-          res.data.percentComplete === 100 ||
+          res.data.status === 'complete' ||
           isFailedStatus(res.data.status),
         intervalMs: POLL_INTERVAL_MS,
         maxAttempts: POLL_MAX_ATTEMPTS,
       })
       if (!progressResponse.success) return progressResponse
-      if (isFailedStatus(progressResponse.data.status))
-        return failure(
-          `Error in exportResponses: export failed with status '${progressResponse.data.status}'`,
+      const progress = progressResponse.data
+      if (isFailedStatus(progress.status)) {
+        const reason = [progress.error?.code, progress.error?.message]
+          .filter(Boolean)
+          .join(': ')
+        const failed = failure(
+          `Error in exportResponses: export failed with status '${progress.status}'${
+            reason ? ` (${reason})` : ''
+          }`,
           'HTTP'
         )
-      if (progressResponse.data.percentComplete !== 100)
+        if (progress.error)
+          failed.details = {
+            errorCode: progress.error.code,
+            errorMessage: progress.error.message,
+          }
+        return failed
+      }
+      if (progress.status !== 'complete' || typeof progress.fileId !== 'string')
         return failure(
           `Error in exportResponses: export did not complete within ${
             (POLL_INTERVAL_MS * POLL_MAX_ATTEMPTS) / 1000
-          } seconds (status '${progressResponse.data.status}', ${
-            progressResponse.data.percentComplete
+          } seconds (status '${progress.status}', ${
+            progress.percentComplete
           }% complete)`,
           'TIMEOUT'
         )
@@ -76,7 +89,7 @@ export const exportResponses: ActionFactory<
         context
       )({
         surveyId,
-        fileId: progressResponse.data.fileId,
+        fileId: progress.fileId,
         ...request,
       })
       if (!file.success) return file

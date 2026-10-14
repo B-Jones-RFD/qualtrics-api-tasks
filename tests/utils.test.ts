@@ -67,13 +67,21 @@ describe('safeParseFileProgressResponse', () => {
     expect(parsed).toStrictEqual(expected)
   })
 
-  it('should fail with missing props', () => {
-    const res = {
-      result: {
-        percentComplete: 0,
-        status: 'inProgress',
-      },
+  it('normalises a null or missing fileId to null while in progress', () => {
+    const absent = { result: { percentComplete: 0, status: 'inProgress' } }
+    expect(safeParseFileProgressResponse(absent)).toStrictEqual(
+      success({ percentComplete: 0, status: 'inProgress', fileId: null })
+    )
+    const nul = {
+      result: { fileId: null, percentComplete: 0, status: 'failed' },
     }
+    expect(safeParseFileProgressResponse(nul)).toStrictEqual(
+      success({ percentComplete: 0, status: 'failed', fileId: null })
+    )
+  })
+
+  it('should fail with missing props', () => {
+    const res = { result: { fileId: 'f', percentComplete: 0 } }
     const expected = failure('File Progress Response invalid format')
     const parsed = safeParseFileProgressResponse(res)
     expect(parsed).toStrictEqual(expected)

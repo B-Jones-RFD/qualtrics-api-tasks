@@ -14,7 +14,7 @@ import { withRetry } from '../../retry'
  * Get Distribution
  *
  * Implements Get Distribution
- * @see https://api.qualtrics.com/437447486ad95-get-distribution
+ * @see https://api.qualtrics.com/f5b1d8775d803-get-distribution
  */
 export const getDistribution: ActionFactory<
   GetDistributionOptions,

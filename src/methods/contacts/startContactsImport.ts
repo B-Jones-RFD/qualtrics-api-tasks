@@ -14,7 +14,7 @@ import { createConnectionContext } from '../../context'
  *
  * Implements Create Transaction Contacts Import. This is step 1 in the
  * contacts import process.
- * @see https://api.qualtrics.com/1ac99fba8ca5b-contact-imports
+ * @see https://api.qualtrics.com/bab13356ac724-create-transaction-contacts-import
  */
 export const startContactsImport: ActionFactory<
   StartContactsImportOptions,

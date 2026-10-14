@@ -446,11 +446,28 @@ export type StartResponseExportResponse = {
   continuationToken?: string
 }
 
+/** Status of a response export job, as reported by Qualtrics. */
+export type ResponseExportStatus = 'inProgress' | 'complete' | 'failed'
+
+/** Reason a response export failed (`result.error` of the progress response). */
+export type ResponseExportJobError = {
+  /** Qualtrics job error code, e.g. `'EXPORTS_109'`. */
+  code?: string
+  message?: string
+  /** Extra fields Qualtrics attached, e.g. `{ invalidField: 'QID1' }`. */
+  context?: Record<string, unknown>
+}
+
 export type FileProgressResponse = {
-  fileId: string
+  /** Id of the file to download. `null` until `status` is `'complete'`. */
+  fileId: string | null
+  /** Convenience field only; download when `status` is `'complete'`, not at 100. */
   percentComplete: number
-  status: string
+  status: ResponseExportStatus | string
+  /** Present once the export is complete when it was started with `allowContinuation` or a `continuationToken`. */
   continuationToken?: string
+  /** Present when `status` is `'failed'`. */
+  error?: ResponseExportJobError
 }
 
 export type StartContactsImportResponse = {
@@ -519,6 +536,7 @@ export type Connection = {
   /**
    * Calls `/API/v3/whoami` to verify the credentials. Resolves to
    * `'Connection successful'`.
+   * @see https://api.qualtrics.com/2482a48f62473-users
    */
   testConnection: (options?: RequestOptions) => Promise<Result<string>>
 
@@ -533,19 +551,28 @@ export type Connection = {
    */
   importContacts: Action<ImportContactsOptions, ContactsImportSummaryResponse>
 
-  /** Step 1 of a contacts import: creates the transaction-contacts import and returns its id. */
+  /**
+   * Step 1 of a contacts import: creates the transaction-contacts import and returns its id.
+   * @see https://api.qualtrics.com/bab13356ac724-create-transaction-contacts-import
+   */
   startContactsImport: Action<
     StartContactsImportOptions,
     StartContactsImportResponse
   >
 
-  /** Step 2 of a contacts import: reports `percentComplete` and `status`. */
+  /**
+   * Step 2 of a contacts import: reports `percentComplete` and `status`.
+   * @see https://api.qualtrics.com/c5d22705b1d45-get-transaction-contacts-import-status
+   */
   getContactsImportStatus: Action<
     GetContactsImportStatusOptions,
     ContactsImportStatusResponse
   >
 
-  /** Step 3 of a contacts import: counts of added/updated/failed contacts and invalid emails. */
+  /**
+   * Step 3 of a contacts import: counts of added/updated/failed contacts and invalid emails.
+   * @see https://api.qualtrics.com/6f0480b307053-get-transaction-contacts-import-summary
+   */
   getContactsImportSummary: Action<
     GetContactsImportSummaryOptions,
     ContactsImportSummaryResponse
@@ -599,20 +626,20 @@ export type Connection = {
 
   /**
    * Creates a distribution and returns its id.
-   * @see https://api.qualtrics.com/8e8a6cc5bcdc1-create-distribution
+   * @see https://api.qualtrics.com/573e3f0a94888-create-distribution
    */
   createDistribution: Action<CreateDistributionOptions, string>
 
   /**
    * Schedules a reminder for a distribution and returns the reminder's
    * distribution id.
-   * @see https://api.qualtrics.com/f4e0d2c4c6a0e-create-reminder-distribution
+   * @see https://api.qualtrics.com/764630bb0633a-create-reminder-distribution
    */
   createReminder: Action<CreateReminderOptions, string>
 
   /**
    * Reads one distribution, including its send statistics.
-   * @see https://api.qualtrics.com/437447486ad95-get-distribution
+   * @see https://api.qualtrics.com/f5b1d8775d803-get-distribution
    */
   getDistribution: Action<GetDistributionOptions, Distribution>
 
@@ -646,11 +673,12 @@ export type Connection = {
 
   /**
    * Exports survey responses end to end: starts the export, polls its
-   * progress once a second (up to five minutes), downloads the file and
-   * decodes it. Resolves to the export's contents — a UTF-8 string for the
-   * text formats, a `Buffer` for `spss` — whether or not Qualtrics
-   * compressed it. Fails with `HTTP` if Qualtrics reports the export failed
-   * and `TIMEOUT` if it does not finish in time. Use the three step actions
+   * progress once a second (up to five minutes) until `status` is
+   * `'complete'`, downloads the file and decodes it. Resolves to the
+   * export's contents — a UTF-8 string for the text formats, a `Buffer` for
+   * `spss` — whether or not Qualtrics compressed it. Fails with `HTTP` if
+   * Qualtrics reports the export failed (the job's error code and message
+   * are in `details`) and `TIMEOUT` if it does not finish in time. Use the three step actions
    * below for the raw file.
    * @see https://api.qualtrics.com/u9e5lh4172v0v-survey-response-export-guide
    */
@@ -659,19 +687,30 @@ export type Connection = {
   /** @deprecated Alias of {@link Connection.exportResponses}; removed in 2.0. */
   exportResponseData: Action<ExportResponsesOptions, ResponseExportData>
 
-  /** Step 1 of a response export: starts it and returns the `progressId`. */
+  /**
+   * Step 1 of a response export: starts it and returns the `progressId`.
+   * @see https://api.qualtrics.com/6b00592b9c013-start-response-export
+   */
   startResponseExport: Action<
     StartResponseExportOptions,
     StartResponseExportResponse
   >
 
-  /** Step 2 of a response export: reports `percentComplete`, `status` and, when done, `fileId`. */
+  /**
+   * Step 2 of a response export: reports `status`, `percentComplete` and,
+   * once `status` is `'complete'`, the `fileId` to download. A `'failed'`
+   * export carries the reason in `error`.
+   * @see https://api.qualtrics.com/37e6a66f74ab4-get-response-export-progress
+   */
   getResponseExportProgress: Action<
     GetResponseExportProgressOptions,
     FileProgressResponse
   >
 
-  /** Step 3 of a response export: downloads the file as raw bytes. */
+  /**
+   * Step 3 of a response export: downloads the file as raw bytes.
+   * @see https://api.qualtrics.com/41296b6f2e828-get-response-export-file
+   */
   getResponseExportFile: Action<GetResponseExportFileOptions, Buffer>
 }
 

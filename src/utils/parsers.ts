@@ -82,11 +82,15 @@ export function safeParseStartFileExportResponse(
 export function safeParseFileProgressResponse(
   response: unknown
 ): Result<FileProgressResponse> {
-  return parseEnvelope(response, 'File Progress Response', [
-    'fileId',
-    'percentComplete',
-    'status',
-  ])
+  const parsed = parseEnvelope<
+    Omit<FileProgressResponse, 'fileId'> & { fileId?: unknown }
+  >(response, 'File Progress Response', ['percentComplete', 'status'])
+  if (!parsed.success) return parsed
+  const { fileId, ...rest } = parsed.data
+  return success({
+    ...rest,
+    fileId: typeof fileId === 'string' ? fileId : null,
+  })
 }
 
 export function safeParseCreateMailingListResponse(

@@ -8,7 +8,7 @@ import { createConnectionContext } from '../../context'
  * Create Distribution
  *
  * Implements Create Distribution
- * @see https://api.qualtrics.com/8e8a6cc5bcdc1-create-distribution
+ * @see https://api.qualtrics.com/573e3f0a94888-create-distribution
  */
 export const createDistribution: ActionFactory<
   CreateDistributionOptions,

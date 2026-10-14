@@ -19,6 +19,8 @@ type ExecuteConfig = {
   headers?: Headers
   /** Present → POST. Strings are sent as JSON. */
   body?: string | URLSearchParams
+  /** Return the response body as a `Buffer` whatever its content type (file downloads). */
+  raw?: boolean
 }
 
 type Auth =
@@ -141,7 +143,10 @@ async function send(config: ExecuteConfig, headers: Headers): Promise<unknown> {
 
   try {
     const response = await fetch(resource, options)
-    if (response.ok) return await decodeBody(response)
+    if (response.ok)
+      return config.raw
+        ? Buffer.from(await response.arrayBuffer())
+        : await decodeBody(response)
     const text = await response.text()
     throw new QualtricsApiError(
       response.status,

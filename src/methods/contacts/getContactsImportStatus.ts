@@ -15,7 +15,7 @@ import { withRetry } from '../../retry'
  *
  * Implements Get Transaction Contacts Import Status. This is step 2 in the
  * contacts import process.
- * @see https://api.qualtrics.com/1ac99fba8ca5b-contact-imports
+ * @see https://api.qualtrics.com/c5d22705b1d45-get-transaction-contacts-import-status
  */
 export const getContactsImportStatus: ActionFactory<
   GetContactsImportStatusOptions,

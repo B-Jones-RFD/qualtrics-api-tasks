@@ -529,8 +529,10 @@ Resolves to the decoded export: a UTF-8 `string` for `csv`, `tsv`, `json`, `ndjs
 Implements [Survey Response File Export](https://api.qualtrics.com/u9e5lh4172v0v-survey-response-export-guide) multistep process. Runs the following actions:
 
 1. [Start Response Export](#startresponseexportoptions)
-2. Polls [Get Response Export Progress](#getresponseexportprogressoptions)
+2. Polls [Get Response Export Progress](#getresponseexportprogressoptions) once a second (up to five minutes) until `status` is `complete`
 3. [Get Response Export File](#getresponseexportfileoptions)
+
+If Qualtrics reports the export `failed`, the result is an `HTTP` failure whose `details` carry the job's error code and message (e.g. `EXPORTS_109`). Note that Qualtrics rejects `useLabels`, `breakoutSets`, `timeZone`, `newlineReplacement`, `formatDecimalAsComma`, `includeDisplayOrder`, `seenUnansweredRecode` and `multiselectSeenUnansweredRecode` for the `json` and `ndjson` formats.
 
 `options`
 
@@ -570,10 +572,10 @@ Implements [Get Response Export File](https://api.qualtrics.com/41296b6f2e828-ge
 
 `options`
 
-| Property | Type   | Description         | Required |
-| -------- | ------ | ------------------- | -------- |
-| surveyId | string | Qualtrics Survey ID | Y        |
-| fileId   | string | File ID             | Y        |
+| Property | Type           | Description                                  | Required |
+| -------- | -------------- | -------------------------------------------- | -------- |
+| surveyId | string         | Qualtrics Survey ID                          | Y        |
+| fileId   | string \| null | File ID; `null` until `status` is `complete` | Y        |
 
 ##### getResponseExportProgress(options)
 
